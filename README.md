@@ -1,4 +1,4 @@
-# EZY CrewFlow
+# Paul Monitoring Dashboard
 
 Password-protected crew analytics for Netlify, with two sections:
 

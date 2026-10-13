@@ -4,33 +4,33 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>EZY CrewFlow · Sign in</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23ff6d00'/%3E%3Cpath d='M8 21c4-10 12-10 16 0' stroke='%23fff' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Paul Monitoring Dashboard · Sign in</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234338ca'/%3E%3Cpath d='M8 21c4-10 12-10 16 0' stroke='%23fff' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0a0b0f;--s1:#101217;--s2:#171a22;--b2:rgba(255,255,255,0.10);--b3:rgba(255,255,255,0.18);--txt:#e4e6ec;--mut:#6b7083;--ezy:#ff6d00;--ezy-dim:#c25500;--neg:#f87171;--fh:'Space Grotesk',system-ui,sans-serif;--fm:'JetBrains Mono',ui-monospace,monospace;}
+:root{--bg:#f4f6f9;--s1:#ffffff;--s2:#f1f3f7;--b2:#dbe0e8;--b3:#b8c1ce;--txt:#1d2433;--mut:#5b6678;--ezy:#4338ca;--ezy-dim:#3730a3;--neg:#d43b3b;--fh:'Inter',system-ui,sans-serif;--fm:'Inter',system-ui,sans-serif;}
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fm);font-size:12px;-webkit-font-smoothing:antialiased;}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fm);font-size:14px;-webkit-font-smoothing:antialiased;}
 body{display:flex;align-items:center;justify-content:center;padding:16px;}
-.box{width:340px;max-width:100%;background:var(--s1);border:1px solid var(--b2);border-radius:10px;padding:28px 26px;}
+.box{width:360px;max-width:100%;background:var(--s1);border:1px solid var(--b2);border-radius:12px;padding:32px 30px;box-shadow:0 10px 30px rgba(16,24,40,0.08);}
 .brand{font-family:var(--fh);font-size:22px;font-weight:700;letter-spacing:-0.02em;margin-bottom:4px;}
 .brand .e{color:var(--ezy);}
 .brand .c{font-weight:500;}
-.sub{font-size:10px;color:var(--mut);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:22px;}
-label{display:block;font-size:10px;color:var(--mut);margin-bottom:6px;}
-input{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:5px;color:var(--txt);padding:9px 10px;font-family:var(--fm);font-size:12px;outline:none;}
+.sub{font-size:13px;color:var(--mut);margin-bottom:24px;}
+label{display:block;font-size:13px;font-weight:500;color:var(--mut);margin-bottom:6px;}
+input{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:5px;color:var(--txt);padding:10px 12px;font-family:var(--fm);font-size:14px;outline:none;}
 input:focus{border-color:var(--ezy);}
-button{margin-top:14px;width:100%;font-family:var(--fm);font-size:12px;font-weight:500;padding:9px;border-radius:5px;cursor:pointer;border:1px solid var(--ezy);background:var(--ezy);color:#fff;}
+button{margin-top:14px;width:100%;font-family:var(--fm);font-size:14px;font-weight:600;padding:10px;border-radius:8px;cursor:pointer;border:1px solid var(--ezy);background:var(--ezy);color:#fff;}
 button:hover{background:var(--ezy-dim);}
 button:disabled{opacity:0.6;cursor:wait;}
-.err{color:var(--neg);font-size:10px;margin-top:10px;min-height:14px;}
-.foot{font-size:9px;color:var(--mut);margin-top:18px;line-height:1.5;}
+.err{color:var(--neg);font-size:13px;margin-top:10px;min-height:14px;}
+.foot{font-size:12px;color:var(--mut);margin-top:18px;line-height:1.5;}
 </style>
 </head>
 <body>
 <form class="box" id="f">
-  <div class="brand"><span class="e">EZY</span> <span class="c">CrewFlow</span></div>
-  <div class="sub">Tripping Analyser</div>
+  <div class="brand">Paul Monitoring <span class="e">Dashboard</span></div>
+  <div class="sub">Sign in to continue</div>
   <label for="pw">Password</label>
   <input id="pw" type="password" autocomplete="current-password" autofocus required>
   <button id="go" type="submit">Sign in</button>
