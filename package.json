@@ -1,0 +1,25 @@
+{
+  "name": "crewflow",
+  "version": "2.0.0",
+  "description": "EZY CrewFlow — crew tripping analyser (Netlify, password-protected, Netlify Blobs storage)",
+  "scripts": {
+    "dev": "netlify dev",
+    "check": "node --check netlify/functions/data.mjs && node --check netlify/functions/login.mjs && node --check netlify/functions/logout.mjs && node --check netlify/lib/session.mjs && node --check netlify/edge-functions/auth-gate.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aleoliveto/crewflow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/aleoliveto/crewflow/issues"
+  },
+  "homepage": "https://github.com/aleoliveto/crewflow#readme",
+  "dependencies": {
+    "@netlify/blobs": "^11.1.4"
+  },
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  }
+}
