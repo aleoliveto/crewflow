@@ -1,0 +1,14 @@
+node_modules/
+.netlify/
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Never commit operational data — it contains crew identifiers. Upload it through the app instead.
+data/
+*.csv
+*.tsv
+*.xlsx
+*Audit*.html
+*audit*.html

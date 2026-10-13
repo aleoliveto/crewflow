@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>EZY CrewFlow</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23ff6d00'/%3E%3Cpath d='M8 21c4-10 12-10 16 0' stroke='%23fff' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg:#0a0b0f; --s1:#101217; --s2:#171a22; --s3:#1f232d;
+  --b1:rgba(255,255,255,0.05); --b2:rgba(255,255,255,0.10); --b3:rgba(255,255,255,0.18);
+  --txt:#e4e6ec; --mut:#6b7083; --mut2:#44485a;
+  --ezy:#ff6d00; --ezy-dim:#c25500;
+  --uk:#5b9cf6; --eu:#2dd4bf; --ch:#f59e0b;
+  --cross:#f87171; --disc:#a78bfa; --ulv:#2dd4bf;
+  --pos:#34d399; --neg:#f87171; --warn:#fb923c;
+  --fh:'Space Grotesk',system-ui,sans-serif;
+  --fm:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fm);font-size:12px;overflow:hidden;-webkit-font-smoothing:antialiased;}
+button,input,select{font-family:inherit;}
+
+/* ── Layout ── */
+#app{display:grid;grid-template-columns:280px 1fr;grid-template-rows:52px 1fr;height:100vh;}
+#topbar{grid-column:1/-1;display:flex;align-items:center;border-bottom:1px solid var(--b1);background:var(--s1);}
+#sidebar{border-right:1px solid var(--b1);background:var(--s1);overflow-y:auto;}
+#main{display:flex;flex-direction:column;overflow:hidden;position:relative;}
+
+/* ── Topbar ── */
+.brand{display:flex;align-items:center;gap:10px;padding:0 20px;height:100%;border-right:1px solid var(--b1);flex-shrink:0;}
+.brand-ezy{font-family:var(--fh);font-weight:700;font-size:16px;color:var(--ezy);letter-spacing:-0.02em;}
+.brand-cf{font-family:var(--fh);font-weight:500;font-size:16px;letter-spacing:-0.02em;}
+.sections{display:flex;gap:2px;padding:0 10px;border-right:1px solid var(--b1);height:100%;align-items:center;}
+.sec-btn{font-size:10px;padding:6px 12px;border-radius:4px;border:1px solid transparent;background:none;color:var(--mut);cursor:pointer;white-space:nowrap;text-transform:uppercase;letter-spacing:0.06em;}
+.sec-btn:hover{color:var(--txt);background:var(--s2);}
+.sec-btn.on{color:var(--ezy);border-color:rgba(255,109,0,0.4);background:rgba(255,109,0,0.08);}
+.tabs{display:flex;align-items:stretch;flex:1;overflow-x:auto;scrollbar-width:none;height:100%;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{font-size:10px;padding:0 14px;height:100%;border:none;cursor:pointer;color:var(--mut);background:none;white-space:nowrap;display:flex;align-items:center;gap:6px;border-bottom:2px solid transparent;transition:all 0.15s;}
+.tab:hover{color:var(--txt);background:var(--s2);}
+.tab.on{color:var(--txt);border-bottom-color:var(--ezy);}
+.tab-dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:0.7;}
+.actions{display:flex;align-items:stretch;border-left:1px solid var(--b1);height:100%;}
+.act{font-size:10px;padding:0 14px;height:100%;border:none;cursor:pointer;color:var(--mut);background:none;white-space:nowrap;display:flex;align-items:center;gap:5px;}
+.act:hover{color:var(--txt);background:var(--s2);}
+.act.pos{color:var(--pos);}
+
+.sync{font-size:10px;color:var(--mut);padding:0 14px;display:flex;align-items:center;gap:6px;border:none;background:none;white-space:nowrap;cursor:default;height:100%;}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--mut2);flex-shrink:0;}
+.sync.ok .sync-dot{background:var(--pos);}
+.sync.saving .sync-dot{background:var(--warn);animation:pulse 1s ease-in-out infinite;}
+.sync.error{color:var(--neg);cursor:pointer;}
+.sync.error .sync-dot{background:var(--neg);}
+.sync.stale{color:var(--uk);cursor:pointer;}
+.sync.stale .sync-dot{background:var(--uk);}
+.sync.error:hover,.sync.stale:hover{background:var(--s2);}
+@keyframes pulse{50%{opacity:0.3;}}
+
+/* ── Sidebar ── */
+.sb-sec{padding:12px 14px;border-bottom:1px solid var(--b1);}
+.sb-title{font-size:10px;font-weight:500;color:var(--mut2);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px;}
+.sb-sublabel{font-size:9px;color:var(--mut);margin:8px 0 4px;}
+.ds-row{display:flex;align-items:center;gap:8px;padding:5px 0;}
+.ds-row+.ds-row{border-top:1px solid var(--b1);}
+.ds-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--mut2);}
+.ds-dot.on{background:var(--pos);}
+.ds-dot.local{background:var(--warn);}
+.ds-info{flex:1;min-width:0;}
+.ds-name{font-size:11px;}
+.ds-meta{font-size:9px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+.ds-btn{border:1px solid var(--b1);background:var(--s2);color:var(--mut);font-size:10px;width:22px;height:20px;border-radius:3px;cursor:pointer;flex-shrink:0;}
+.ds-btn:hover{color:var(--txt);border-color:var(--b3);}
+.ds-btn.del:hover{color:var(--neg);border-color:rgba(248,113,113,0.5);}
+
+.aoc-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
+.aoc-pill{padding:6px 4px;border-radius:4px;border:1px solid var(--b1);background:var(--s2);cursor:pointer;text-align:center;font-size:10px;font-weight:500;color:var(--mut);user-select:none;}
+.aoc-pill:hover{border-color:var(--b3);}
+.aoc-pill.uk.on{background:rgba(91,156,246,0.12);border-color:rgba(91,156,246,0.45);color:var(--uk);}
+.aoc-pill.eu.on{background:rgba(45,212,191,0.12);border-color:rgba(45,212,191,0.45);color:var(--eu);}
+.aoc-pill.ch.on{background:rgba(245,158,11,0.12);border-color:rgba(245,158,11,0.45);color:var(--ch);}
+.inp{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:4px;color:var(--txt);padding:5px 8px;font-size:10px;outline:none;}
+.inp:focus{border-color:var(--b3);}
+.base-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;max-height:110px;overflow-y:auto;margin-top:6px;}
+.base-chip{padding:3px 2px;border-radius:3px;border:1px solid var(--b1);background:var(--s2);cursor:pointer;text-align:center;font-size:9px;color:var(--mut);user-select:none;}
+.base-chip:hover{border-color:var(--b2);color:var(--txt);}
+.base-chip.on{color:var(--txt);}
+.base-chip.on.uk{background:rgba(91,156,246,0.13);border-color:rgba(91,156,246,0.38);}
+.base-chip.on.eu{background:rgba(45,212,191,0.1);border-color:rgba(45,212,191,0.33);}
+.base-chip.on.ch{background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.33);}
+.base-acts{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-top:6px;}
+.mini-btn{padding:3px 2px;border-radius:3px;border:1px solid var(--b1);background:none;color:var(--mut);font-size:8px;cursor:pointer;text-transform:uppercase;letter-spacing:0.05em;}
+.mini-btn:hover{color:var(--txt);border-color:var(--b2);}
+
+.tog-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;}
+.tog-label{font-size:11px;line-height:1.3;}
+.tog-sub{font-size:9px;color:var(--mut);margin-top:1px;}
+.toggle{position:relative;width:28px;height:14px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.tog-sl{position:absolute;inset:0;background:var(--s2);border:1px solid var(--b2);border-radius:14px;cursor:pointer;transition:0.18s;}
+.tog-sl:before{content:'';position:absolute;left:2px;top:2px;width:8px;height:8px;background:var(--mut);border-radius:50%;transition:0.18s;}
+.toggle input:checked+.tog-sl{background:var(--ezy);border-color:var(--ezy);}
+.toggle input:checked+.tog-sl:before{transform:translateX(12px);background:#fff;}
+.toggle input:focus-visible+.tog-sl{outline:1px solid var(--ezy);outline-offset:2px;}
+.sel{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:4px;color:var(--txt);padding:5px 8px;font-size:10px;outline:none;cursor:pointer;margin-bottom:6px;}
+.sel:hover{border-color:var(--b3);}
+.reset-btn{width:100%;margin-top:8px;padding:6px;border-radius:4px;border:1px solid var(--b1);background:none;color:var(--mut);font-size:9px;cursor:pointer;text-transform:uppercase;letter-spacing:0.06em;}
+.reset-btn:hover{color:var(--txt);border-color:var(--b2);}
+
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.stat-card{background:var(--s2);border:1px solid var(--b1);border-radius:5px;padding:8px 10px;}
+.stat-val{font-family:var(--fh);font-size:17px;font-weight:700;line-height:1;letter-spacing:-0.02em;}
+.stat-lbl{font-size:9px;color:var(--mut);margin-top:3px;}
+
+.hs-list{display:flex;flex-direction:column;gap:3px;max-height:280px;overflow-y:auto;}
+.hs-item{padding:5px 8px;border-radius:4px;border:1px solid rgba(248,113,113,0.18);background:rgba(248,113,113,0.03);cursor:pointer;}
+.hs-item:hover,.hs-item.on{border-color:var(--cross);background:rgba(248,113,113,0.08);}
+.hs-route{font-size:11px;font-weight:500;color:var(--cross);}
+.hs-meta{font-size:9px;color:var(--mut);margin-top:1px;}
+.hs-badge{font-size:9px;color:var(--mut);float:right;}
+.hs-empty{font-size:9px;color:var(--mut2);}
+
+.act-list{display:flex;flex-direction:column;gap:1px;max-height:220px;overflow-y:auto;}
+.act-row{display:flex;align-items:center;gap:8px;font-size:11px;padding:4px 6px;border-radius:3px;cursor:pointer;}
+.act-row:hover{background:var(--s2);}
+.act-row input{accent-color:var(--ezy);}
+.act-row .a-label{flex:1;}
+.act-row.rest .a-label{color:var(--warn);}
+.act-row .a-count{color:var(--mut);font-size:10px;}
+.link-row{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;}
+.link{color:var(--ezy);cursor:pointer;background:none;border:none;font-size:10px;padding:0;}
+.link:hover{text-decoration:underline;}
+
+/* ── Views ── */
+.view{display:none;flex:1;flex-direction:column;overflow:hidden;position:relative;}
+.view.on{display:flex;}
+.view-body{flex:1;overflow-y:auto;padding:18px 22px 40px;}
+.legend{display:flex;gap:14px;align-items:center;padding:7px 16px;border-top:1px solid var(--b1);font-size:9px;color:var(--mut);flex-wrap:wrap;flex-shrink:0;background:var(--s1);}
+.leg{display:flex;align-items:center;gap:5px;}
+.leg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.leg-line{width:16px;height:2px;flex-shrink:0;border-radius:1px;}
+.h1{font-family:var(--fh);font-size:16px;font-weight:600;margin:0 0 4px;letter-spacing:-0.01em;}
+.h2{font-family:var(--fh);font-size:13px;font-weight:600;margin:0 0 10px;}
+.sub{font-size:11px;color:var(--mut);margin-bottom:16px;line-height:1.55;max-width:900px;}
+.sub strong{color:var(--txt);font-weight:500;}
+.empty{color:var(--mut);padding:24px;text-align:center;font-size:11px;}
+.drop{border:1px dashed var(--b2);border-radius:7px;padding:26px;cursor:pointer;text-align:center;}
+.drop:hover{border-color:var(--ezy);background:rgba(255,109,0,0.03);}
+.drop-t{color:var(--mut);font-size:11px;}
+.drop-s{color:var(--mut2);font-size:9px;margin-top:4px;}
+
+/* WFLY */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:16px;}
+.kpi{background:var(--s1);border:1px solid var(--b2);border-radius:6px;padding:11px 12px;}
+.kpi-v{font-family:var(--fh);font-size:19px;font-weight:700;line-height:1.1;letter-spacing:-0.02em;}
+.kpi-l{font-size:9px;color:var(--mut);margin-top:4px;line-height:1.35;}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.row2{display:grid;grid-template-columns:1fr 1.3fr;gap:10px;}
+.box{background:var(--s1);border:1px solid var(--b2);border-radius:7px;padding:12px 14px;min-width:0;}
+.box h3{font-family:var(--fh);font-size:12px;font-weight:600;color:var(--mut);margin-bottom:10px;}
+.bar-row{display:grid;grid-template-columns:62px 1fr 74px;align-items:center;gap:8px;margin-bottom:5px;font-size:10px;}
+.bar-track{background:var(--s2);height:11px;border-radius:2px;overflow:hidden;}
+.bar-fill{height:100%;background:var(--ezy);}
+.bar-n{text-align:right;color:var(--mut);}
+.panel{background:var(--s1);border:1px solid var(--b2);border-radius:7px;padding:14px 16px;margin-bottom:14px;}
+.panel-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;}
+.panel-head h3{font-family:var(--fh);font-size:14px;font-weight:600;margin-bottom:4px;}
+.panel-head p{font-size:11px;color:var(--mut);line-height:1.5;max-width:780px;}
+.panel-head .headline{color:var(--warn);margin-top:6px;}
+.panel-detail{display:none;margin-top:14px;}
+.panel.open .panel-detail{display:block;}
+.tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.tbl th{font-size:9px;color:var(--mut);text-align:left;padding:6px 8px;border-bottom:1px solid var(--b2);font-weight:500;white-space:nowrap;letter-spacing:0.04em;text-transform:uppercase;background:var(--s1);}
+.tbl th.r,.tbl td.r{text-align:right;}
+.tbl td{padding:5px 8px;border-bottom:1px solid var(--b1);vertical-align:middle;}
+.tbl tbody tr:hover td{background:var(--s2);}
+.tbl th.sort{cursor:pointer;position:sticky;top:0;z-index:1;}
+.tbl th.sort:hover{color:var(--txt);}
+.matrix td,.matrix th{text-align:center;padding:5px 4px;font-size:10px;}
+.matrix td:first-child,.matrix th:first-child{text-align:left;position:sticky;left:0;background:var(--s1);}
+.flag{color:var(--warn);font-weight:600;}
+.badge{display:inline-block;font-size:9px;padding:1px 6px;border-radius:3px;background:var(--s2);color:var(--mut);}
+.badge.CP{background:rgba(245,158,11,0.15);color:var(--ch);}
+.badge.FO{background:rgba(91,156,246,0.15);color:var(--uk);}
+.badge.rest{background:rgba(251,146,60,0.14);color:var(--warn);}
+.badge.flt{background:rgba(52,211,153,0.12);color:var(--pos);}
+.cnt{font-size:9px;font-weight:600;color:var(--warn);background:rgba(251,146,60,0.12);border-radius:8px;padding:0 5px;margin-left:5px;}
+.cell-btn{background:none;border:none;color:var(--txt);text-decoration:underline;cursor:pointer;font-size:10px;padding:0;}
+.cell-btn.disc{color:var(--disc);}
+.cell-btn.ulv{color:var(--ulv);}
+.zero{color:var(--mut2);}
+.repeat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;}
+.rc{border:1px solid var(--b2);border-radius:5px;padding:8px 10px;cursor:pointer;background:var(--s1);text-align:left;color:var(--txt);}
+.rc:hover,.rc.on{border-color:var(--ezy);background:rgba(255,109,0,0.06);}
+.rc-meta{font-size:9px;color:var(--mut);margin-top:2px;}
+.cmp-row{display:grid;grid-template-columns:54px 1fr;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--b1);}
+.cmp-bars{display:flex;flex-direction:column;gap:2px;}
+.cmp-bar{display:flex;align-items:center;gap:6px;font-size:9px;color:var(--mut);}
+.cmp-bar div{height:6px;border-radius:2px;min-width:1px;}
+.table-wrap{max-height:70vh;overflow:auto;border:1px solid var(--b2);border-radius:7px;}
+
+/* Detail panel */
+#dp{position:absolute;bottom:38px;right:14px;width:340px;background:var(--s1);border:1px solid var(--b2);border-radius:7px;padding:13px;display:none;z-index:50;max-height:60vh;overflow-y:auto;box-shadow:0 12px 36px rgba(0,0,0,0.5);}
+#dp.on{display:block;}
+.dp-title{font-family:var(--fh);font-size:13px;font-weight:600;margin-bottom:6px;color:var(--cross);}
+.dp-close{float:right;cursor:pointer;color:var(--mut);font-size:14px;background:none;border:none;}
+.dp-close:hover{color:var(--txt);}
+.dp-sub{font-size:9px;color:var(--mut);margin-bottom:8px;}
+
+/* Modals */
+#modal-overlay{position:fixed;inset:0;background:rgba(10,11,15,0.88);display:none;align-items:center;justify-content:center;z-index:300;backdrop-filter:blur(6px);}
+#modal-overlay.on{display:flex;}
+.modal{background:var(--s1);border:1px solid var(--b2);border-radius:10px;padding:24px;width:460px;max-width:92vw;max-height:88vh;overflow-y:auto;}
+.modal h2{font-family:var(--fh);font-size:17px;font-weight:600;margin-bottom:5px;}
+.modal p{font-size:11px;color:var(--mut);margin-bottom:14px;line-height:1.5;}
+.modal-acts{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;}
+.mbtn{font-size:11px;padding:7px 16px;border-radius:5px;cursor:pointer;border:1px solid var(--b2);background:none;color:var(--mut);}
+.mbtn:hover{color:var(--txt);}
+.mbtn.go{background:var(--ezy);color:#fff;border-color:var(--ezy);font-weight:500;}
+.mbtn.go:hover{background:var(--ezy-dim);}
+.mbtn.danger{border-color:rgba(248,113,113,0.5);color:var(--neg);}
+.schema-err{background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.3);border-radius:5px;padding:10px 12px;font-size:10px;color:var(--neg);line-height:1.5;word-break:break-word;}
+.schema-err code{background:var(--s2);padding:1px 5px;border-radius:2px;}
+#dropzone{position:fixed;inset:0;z-index:350;display:none;align-items:center;justify-content:center;background:rgba(10,11,15,0.85);pointer-events:none;}
+#dropzone.on{display:flex;}
+#dropzone div{border:2px dashed var(--ezy);border-radius:14px;padding:48px 64px;text-align:center;font-family:var(--fh);font-size:18px;color:var(--ezy);}
+#dropzone small{display:block;font-family:var(--fm);font-size:10px;color:var(--mut);margin-top:8px;}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--s1);border:1px solid var(--b2);border-radius:6px;padding:10px 16px;font-size:11px;z-index:400;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.5);max-width:80vw;}
+#toast.on{display:block;}
+#toast.err{border-color:rgba(248,113,113,0.4);}
+#toast.ok{border-color:rgba(52,211,153,0.4);}
+#tt{position:fixed;background:var(--s1);border:1px solid var(--b2);border-radius:5px;padding:7px 11px;font-size:10px;pointer-events:none;display:none;z-index:999;max-width:230px;box-shadow:0 8px 24px rgba(0,0,0,0.5);}
+.tt-t{font-family:var(--fh);font-size:11px;font-weight:600;margin-bottom:3px;}
+.tt-r{display:flex;justify-content:space-between;gap:12px;color:var(--mut);}
+.tt-r span:last-child{color:var(--txt);}
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:14px;}
+#loading.soft{background:rgba(10,11,15,0.8);backdrop-filter:blur(3px);}
+.load-brand{font-family:var(--fh);font-size:24px;font-weight:700;}
+.load-bar{width:180px;height:2px;background:var(--s2);border-radius:1px;overflow:hidden;}
+.load-fill{height:100%;background:var(--ezy);animation:ld 1.4s ease-in-out infinite;}
+@keyframes ld{0%{width:0%;}50%{width:70%;}100%{width:100%;}}
+.load-txt{font-size:10px;color:var(--mut);}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
+svg text{pointer-events:none;user-select:none;}
+.method-sec{background:var(--s1);border:1px solid var(--b1);border-radius:6px;padding:14px 18px;margin-bottom:12px;}
+.method-metric{font-family:var(--fh);font-size:13px;font-weight:600;margin-bottom:6px;}
+.method-def{font-size:11px;line-height:1.6;margin-bottom:8px;}
+.method-caveat{font-size:10px;color:var(--mut);line-height:1.55;font-style:italic;background:var(--s2);padding:8px 12px;border-radius:4px;border-left:2px solid var(--ezy);}
+@media (max-width:1300px){.kpis{grid-template-columns:repeat(3,1fr);}.row3,.row2{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="load-brand"><span style="color:var(--ezy);">EZY</span> <span style="font-weight:500;">CrewFlow</span></div>
+  <div class="load-bar"><div class="load-fill"></div></div>
+  <div class="load-txt" id="load-txt">Initialising…</div>
+</div>
+
+<div id="app" style="display:none;">
+  <div id="topbar">
+    <div class="brand"><span class="brand-ezy">EZY</span><span class="brand-cf">CrewFlow</span></div>
+    <div class="sections">
+      <button class="sec-btn on" data-section="trips" onclick="setSection('trips')">Tripping</button>
+      <button class="sec-btn" data-section="wfly" onclick="setSection('wfly')">WFLY audit</button>
+    </div>
+    <div class="tabs" id="tabs-trips">
+      <button class="tab on" data-view="arc" onclick="setView('arc')"><span class="tab-dot" style="color:var(--cross);"></span>Crossings arc</button>
+      <button class="tab" data-view="map" onclick="setView('map')"><span class="tab-dot" style="color:var(--eu);"></span>Crossings map</button>
+      <button class="tab" data-view="notes" onclick="setView('notes')"><span class="tab-dot" style="color:var(--mut);"></span>Notes</button>
+    </div>
+    <div class="tabs" id="tabs-wfly" style="display:none;">
+      <button class="tab on" data-view="wfly" onclick="setView('wfly')"><span class="tab-dot" style="color:var(--ezy);"></span>WFLY vs discretion &amp; unpaid leave</button>
+    </div>
+    <div class="actions">
+      <button class="sync" id="sync" onclick="Cloud.onStatusClick()"><span class="sync-dot"></span><span id="sync-txt">—</span></button>
+      <button class="act" onclick="pickFile('any')" title="Load one or more files — the type is detected automatically">↑ Load files</button>
+      <button class="act pos" onclick="doExport()">↓ Export</button>
+      <button class="act" onclick="location.href='/api/logout'" title="Sign out">⏻</button>
+    </div>
+    <input type="file" id="file-trips" accept=".csv,.tsv,.txt" style="display:none;" onchange="onFilePicked(this,'trips')">
+    <input type="file" id="file-wfly" accept=".csv,.tsv,.txt" style="display:none;" onchange="onFilePicked(this,'wfly')">
+    <input type="file" id="file-ulv" accept=".csv,.txt" style="display:none;" onchange="onFilePicked(this,'ulv')">
+    <input type="file" id="file-disc" accept=".csv,.txt" style="display:none;" onchange="onFilePicked(this,'disc')">
+    <input type="file" id="file-any" accept=".csv,.tsv,.txt" multiple style="display:none;" onchange="onFilesPicked(this)">
+  </div>
+
+  <div id="sidebar">
+    <div class="sb-sec">
+      <div class="sb-title">Datasets</div>
+      <div id="ds-list"></div>
+    </div>
+
+    <!-- Tripping filters -->
+    <div id="sb-trips">
+      <div class="sb-sec">
+        <div class="sb-title">AOC / bases</div>
+        <div class="aoc-row">
+          <div class="aoc-pill uk on" id="aoc-UK" onclick="toggleAoc('UK')">UK</div>
+          <div class="aoc-pill eu on" id="aoc-Europe" onclick="toggleAoc('Europe')">EU</div>
+          <div class="aoc-pill ch on" id="aoc-Swiss" onclick="toggleAoc('Swiss')">CH</div>
+        </div>
+        <input class="inp" id="base-search" placeholder="Search bases…" oninput="filterBaseChips(this.value)" style="margin-top:8px;">
+        <div class="base-grid" id="base-grid"></div>
+        <div class="base-acts">
+          <button class="mini-btn" onclick="setBases('all')">All</button>
+          <button class="mini-btn" onclick="setBases('none')">None</button>
+          <button class="mini-btn" onclick="setBases('UK')">UK</button>
+          <button class="mini-btn" onclick="setBases('Europe')">EU</button>
+          <button class="mini-btn" onclick="setBases('Swiss')">CH</button>
+        </div>
+      </div>
+      <div class="sb-sec">
+        <div class="sb-title">Exclude</div>
+        <div class="tog-row"><div><div class="tog-label">NCL Pipeline</div><div class="tog-sub">NCL→LGW FO training</div></div>
+          <label class="toggle"><input type="checkbox" id="f-ncl" checked onchange="applyFilters()"><span class="tog-sl"></span></label></div>
+        <div class="tog-row"><div><div class="tog-label">Egypt Standby</div><div class="tog-sub">SSH/HRG hotel standby</div></div>
+          <label class="toggle"><input type="checkbox" id="f-eg" checked onchange="applyFilters()"><span class="tog-sl"></span></label></div>
+        <div class="tog-row"><div><div class="tog-label">Cape Verde</div><div class="tog-sub">SID scheduled</div></div>
+          <label class="toggle"><input type="checkbox" id="f-cv" checked onchange="applyFilters()"><span class="tog-sl"></span></label></div>
+        <div class="tog-row"><div><div class="tog-label">Training Flights</div><div class="tog-sub">All training duties</div></div>
+          <label class="toggle"><input type="checkbox" id="f-tr" onchange="applyFilters()"><span class="tog-sl"></span></label></div>
+      </div>
+      <div class="sb-sec">
+        <div class="sb-title">Scope</div>
+        <div class="sb-sublabel">Rank</div>
+        <select class="sel" id="f-rank" onchange="applyFilters()">
+          <option value="all">All ranks</option><option value="pilots">Pilots (CP + FO)</option><option value="cabin">Cabin crew</option><option value="CP">CP only</option><option value="FO">FO only</option>
+        </select>
+        <div class="sb-sublabel">Month</div>
+        <select class="sel" id="f-month" onchange="applyFilters()"><option value="all">All months</option></select>
+        <div class="sb-sublabel">Flow direction</div>
+        <select class="sel" id="f-dir" onchange="applyFilters()">
+          <option value="all">All movements</option><option value="intra">Intra-AOC only</option><option value="inter">Inter-AOC only</option>
+        </select>
+        <div class="sb-sublabel">Min crossing days <span id="min-val" style="color:var(--txt);">3</span></div>
+        <input type="range" id="f-min" min="1" max="30" value="3" oninput="$('min-val').textContent=this.value;applyFilters()" style="accent-color:var(--ezy);width:100%;">
+        <div class="tog-row" style="margin-top:6px;"><div><div class="tog-label">Show background flows</div><div class="tog-sub">Non-overlapping movement, faded</div></div>
+          <label class="toggle"><input type="checkbox" id="f-bg" onchange="applyFilters()"><span class="tog-sl"></span></label></div>
+        <button class="reset-btn" onclick="resetFilters()">Reset filters</button>
+      </div>
+      <div class="sb-sec">
+        <div class="sb-title">Overview</div>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-val" id="s-tot">—</div><div class="stat-lbl">trips</div></div>
+          <div class="stat-card"><div class="stat-val" id="s-xing" style="color:var(--cross);">—</div><div class="stat-lbl">crossing pairs</div></div>
+          <div class="stat-card"><div class="stat-val" id="s-moves" style="color:var(--cross);">—</div><div class="stat-lbl">overlap moves</div></div>
+        </div>
+      </div>
+      <div class="sb-sec">
+        <div class="sb-title" style="color:var(--cross);">Crossing hotspots</div>
+        <div class="hs-list" id="hs-cross"></div>
+      </div>
+    </div>
+
+    <!-- WFLY filters -->
+    <div id="sb-wfly" style="display:none;">
+      <div class="sb-sec">
+        <div class="sb-title">Activity recorded that day</div>
+        <div class="act-list" id="w-acts"></div>
+        <div class="link-row">
+          <button class="link" onclick="wSelectActs(['REST','D/O'])">Rest/day-off only</button>
+          <button class="link" onclick="wSelectActs('all')">All</button>
+          <button class="link" onclick="wSelectActs([])">Clear</button>
+        </div>
+      </div>
+      <div class="sb-sec">
+        <div class="sb-title">Location &amp; time</div>
+        <select class="sel" id="w-country" onchange="wCountryChanged()"><option value="">All countries</option></select>
+        <select class="sel" id="w-base" onchange="renderWfly()"><option value="">All bases</option></select>
+        <select class="sel" id="w-month" onchange="renderWfly()"><option value="">All months</option></select>
+      </div>
+      <div class="sb-sec">
+        <div class="sb-title">Crew</div>
+        <select class="sel" id="w-rank" onchange="renderWfly()"><option value="">All ranks</option></select>
+        <select class="sel" id="w-emp" onchange="renderWfly()"><option value="">All employment types</option></select>
+        <select class="sel" id="w-cap" onchange="renderWfly()"><option value="">All contract caps</option></select>
+        <select class="sel" id="w-reason" onchange="renderWfly()"><option value="">All reasons</option></select>
+        <input class="inp" id="w-search" placeholder="Search crew ID…" oninput="W.crew=null;renderWfly()">
+      </div>
+      <div class="sb-sec">
+        <div class="sb-title">Same-day cover available</div>
+        <select class="sel" id="w-cover" onchange="renderWfly()">
+          <option value="">Any</option>
+          <option value="disc">Discretion used that day</option>
+          <option value="ulv">ULV granted that day</option>
+          <option value="either">Discretion or ULV that day</option>
+          <option value="none">Neither that day</option>
+        </select>
+        <button class="reset-btn" onclick="wReset()">Reset filters</button>
+      </div>
+      <div class="sb-sec">
+        <div class="sb-title">Estimated cost per WFLY</div>
+        <div class="tog-sub" style="margin-bottom:6px;">Shared with everyone signed in. Stored in the workspace, never in the code.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+          <label style="font-size:9px;color:var(--mut);">CP £<input class="inp" id="rate-CP" type="number" min="0" step="0.01" placeholder="0.00"></label>
+          <label style="font-size:9px;color:var(--mut);">FO £<input class="inp" id="rate-FO" type="number" min="0" step="0.01" placeholder="0.00"></label>
+        </div>
+        <button class="reset-btn" onclick="saveRates()">Save rates</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="view-arc" class="view on">
+      <svg id="cv-arc" style="flex:1;width:100%;"></svg>
+      <div class="legend">
+        <span class="leg"><span class="leg-dot" style="background:var(--uk);"></span>UK</span>
+        <span class="leg"><span class="leg-dot" style="background:var(--eu);"></span>Europe</span>
+        <span class="leg"><span class="leg-dot" style="background:var(--ch);"></span>Swiss</span>
+        <span class="leg"><span class="leg-line" style="background:var(--cross);"></span>Crossing (A→B and B→A same day)</span>
+        <span style="color:var(--mut2);">Thickness = overlapping moves · click an arc or hotspot for dates</span>
+      </div>
+    </div>
+    <div id="view-map" class="view">
+      <svg id="cv-map" style="flex:1;width:100%;"></svg>
+      <div class="legend">
+        <span class="leg"><span class="leg-dot" style="background:var(--uk);"></span>UK</span>
+        <span class="leg"><span class="leg-dot" style="background:var(--eu);"></span>Europe</span>
+        <span class="leg"><span class="leg-dot" style="background:var(--ch);"></span>Swiss</span>
+        <span class="leg"><span class="leg-line" style="background:var(--cross);"></span>Crossing route</span>
+      </div>
+    </div>
+    <div id="view-notes" class="view"><div class="view-body" id="vb-notes"></div></div>
+    <div id="view-wfly" class="view"><div class="view-body" id="vb-wfly"></div></div>
+
+    <div id="dp">
+      <button class="dp-close" onclick="closeDP(true)" aria-label="Close">✕</button>
+      <div class="dp-title" id="dp-title"></div>
+      <div class="dp-sub" id="dp-sub"></div>
+      <div id="dp-body"></div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-overlay"><div class="modal" id="modal-inner"></div></div>
+<div id="dropzone"><div>Drop file to load<small>Tripping, WFLY ($), ULV and discretion reports are detected automatically — drop several at once</small></div></div>
+<div id="toast"></div>
+<div id="tt"><div class="tt-t" id="tt-t"></div><div id="tt-b"></div></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// Reference data
+// ═══════════════════════════════════════════════════════════════════════════
+const BASES = {
+  UK: ['BFS','BHX','BRS','EDI','GLA','LGW','LPL','LTN','MAN','NCL','SEN'],
+  Europe: ['AGP','ALC','AMS','BCN','BER','BOD','CDG','FAO','FCO','LIN','LIS','LYS','MXP','NAP','NCE','NTE','OPO','ORY','PMI'],
+  Swiss: ['BSL','GVA']
+};
+const ALL_BASES = [...BASES.UK, ...BASES.Europe, ...BASES.Swiss];
+const ALL_BASE_SET = new Set(ALL_BASES);
+const AOC_OF = {}; Object.entries(BASES).forEach(([aoc, bs]) => bs.forEach(b => AOC_OF[b] = aoc));
+const TRAINING_TRIPS = new Set(['Training Flight','Training + Non-Training Flight']);
+
+const AP = {
+  LGW:{n:'London Gatwick',lat:51.148,lon:-0.190},LTN:{n:'London Luton',lat:51.874,lon:-0.368},
+  MAN:{n:'Manchester',lat:53.354,lon:-2.275},BRS:{n:'Bristol',lat:51.383,lon:-2.719},
+  BFS:{n:'Belfast',lat:54.657,lon:-6.216},BHD:{n:'Belfast City',lat:54.618,lon:-5.873},
+  EDI:{n:'Edinburgh',lat:55.950,lon:-3.372},GLA:{n:'Glasgow',lat:55.872,lon:-4.433},
+  NCL:{n:'Newcastle',lat:55.038,lon:-1.692},LPL:{n:'Liverpool',lat:53.334,lon:-2.850},
+  BHX:{n:'Birmingham',lat:52.452,lon:-1.748},SEN:{n:'Southend',lat:51.571,lon:0.696},
+  INV:{n:'Inverness',lat:57.543,lon:-4.048},
+  MXP:{n:'Milan Malpensa',lat:45.630,lon:8.723},LIN:{n:'Milan Linate',lat:45.445,lon:9.278},
+  FCO:{n:'Rome Fiumicino',lat:41.804,lon:12.251},NAP:{n:'Naples',lat:40.886,lon:14.291},
+  CDG:{n:'Paris CDG',lat:49.009,lon:2.548},ORY:{n:'Paris Orly',lat:48.724,lon:2.359},
+  LYS:{n:'Lyon',lat:45.726,lon:5.090},NTE:{n:'Nantes',lat:47.157,lon:-1.610},BOD:{n:'Bordeaux',lat:44.828,lon:-0.715},
+  AMS:{n:'Amsterdam',lat:52.310,lon:4.768},BER:{n:'Berlin',lat:52.366,lon:13.503},
+  LIS:{n:'Lisbon',lat:38.774,lon:-9.135},OPO:{n:'Porto',lat:41.235,lon:-8.679},FAO:{n:'Faro',lat:37.014,lon:-7.966},
+  BCN:{n:'Barcelona',lat:41.298,lon:2.079},AGP:{n:'Malaga',lat:36.675,lon:-4.499},
+  ALC:{n:'Alicante',lat:38.282,lon:-0.558},PMI:{n:'Palma',lat:39.551,lon:2.739},
+  NCE:{n:'Nice',lat:43.658,lon:7.215},
+  GVA:{n:'Geneva',lat:46.238,lon:6.109},BSL:{n:'Basel',lat:47.590,lon:7.529},
+  SSH:{n:'Sharm el-Sheikh',lat:27.977,lon:34.395},HRG:{n:'Hurghada',lat:27.178,lon:33.800},
+  SID:{n:'Sal',lat:16.744,lon:-22.949},TFS:{n:'Tenerife South',lat:28.044,lon:-16.572},
+  RAK:{n:'Marrakech',lat:31.607,lon:-8.036},
+};
+
+const aocHex = b => AOC_OF[b]==='UK' ? '#5b9cf6' : AOC_OF[b]==='Europe' ? '#2dd4bf' : AOC_OF[b]==='Swiss' ? '#f59e0b' : '#6b7083';
+const aocCls = b => ({UK:'uk', Europe:'eu', Swiss:'ch'})[AOC_OF[b]] || '';
+const apName = c => (AP[c] || {n:c}).n;
+
+// ── Helpers — uploaded content is shared between users, so always escape it
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+const ja = s => esc(JSON.stringify(String(s ?? '')));   // safe argument for inline onclick
+const fmtN = n => (+n || 0).toLocaleString('en-GB');
+const fmtGBP = n => '£' + Math.round(+n || 0).toLocaleString('en-GB');
+const fmtMonth = (m, opts={month:'long', year:'numeric'}) => new Date(m+'-01T00:00:00Z').toLocaleDateString('en-GB', {...opts, timeZone:'UTC'});
+const fmtWhen = iso => { if (!iso) return ''; const d = new Date(iso); return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}) + ' ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); };
+const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+const pad2 = n => String(n).padStart(2, '0');
+const nextFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+
+// ═══════════════════════════════════════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════════════════════════════════════
+const DATA = {
+  trips: {raw:[], filtered:[]},
+  src: {wfly:null, ulv:null, disc:null},   // parsed raw WFLY / ULV / discretion rows
+  wfly: null,                              // joined view model built by buildWfly()
+  settings: {rates:{}},                    // shared settings (cost per WFLY by rank) — kept in the workspace, not in code
+  ui: {section:'trips', view:'arc', bases:new Set(ALL_BASES), selection:null, pendingMonth:null},
+  meta: {tripsLoaded:false, wflyLoaded:false, files:{}}
+};
+let MEMO = new Map();
+const memo = (k, fn) => { if (!MEMO.has(k)) MEMO.set(k, fn()); return MEMO.get(k); };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Decoding & CSV parsing
+// ═══════════════════════════════════════════════════════════════════════════
+function parseCSVText(text, sep) {
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const rows = [];
+  let row = [], cell = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') { if (text[i+1] === '"') { cell += '"'; i++; } else inQuotes = false; }
+      else cell += c;
+    } else if (c === '"') inQuotes = true;
+    else if (c === sep) { row.push(cell); cell = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i+1] === '\n') i++;
+      row.push(cell); cell = '';
+      if (row.some(x => x.trim())) rows.push(row);
+      row = [];
+    } else cell += c;
+  }
+  if (cell || row.length) { row.push(cell); if (row.some(x => x.trim())) rows.push(row); }
+  return rows;
+}
+
+function decodeBytes(bytes) {
+  if (bytes[0] === 0xFF && bytes[1] === 0xFE) return new TextDecoder('utf-16le').decode(bytes);
+  if (bytes[0] === 0xFE && bytes[1] === 0xFF) return new TextDecoder('utf-16be').decode(bytes);
+  let zeros = 0;
+  for (let i = 0; i < Math.min(200, bytes.length); i++) if (bytes[i] === 0) zeros++;
+  if (zeros > 30) return new TextDecoder('utf-16le').decode(bytes);
+  try { return new TextDecoder('utf-8', {fatal:true}).decode(bytes); }
+  catch { return new TextDecoder('windows-1252').decode(bytes); }
+}
+
+// Dates → timezone-free YYYY-MM-DD. Works out day-first vs month-first from the file itself
+// (the original `new Date(x).toISOString()` read 01/06 as 6 Jan and shifted dates a day in BST).
+const MONTHS = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+function ymd(y, m, d) {
+  if (y < 100) y += 2000;
+  if (!(m >= 1 && m <= 12 && d >= 1 && d <= 31)) return null;
+  const dt = new Date(Date.UTC(y, m-1, d));
+  return dt.getUTCMonth() === m-1 ? `${y}-${pad2(m)}-${pad2(d)}` : null;
+}
+const NUMERIC_DMY = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})\b/;
+function makeDateParser(samples) {
+  let dayFirst = true;
+  for (const s of samples) {
+    const m = String(s||'').trim().match(NUMERIC_DMY);
+    if (!m) continue;
+    if (+m[1] > 12) { dayFirst = true; break; }
+    if (+m[2] > 12) { dayFirst = false; break; }
+  }
+  return raw => {
+    const s = String(raw||'').trim().replace(/^(mon|tue|wed|thu|fri|sat|sun)[a-z]*\.?,?\s+/i, '');
+    if (!s) return null;
+    let m;
+    if ((m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/))) return ymd(+m[1], +m[2], +m[3]);
+    if ((m = s.match(NUMERIC_DMY))) return dayFirst ? ymd(+m[3], +m[2], +m[1]) : ymd(+m[3], +m[1], +m[2]);
+    if ((m = s.match(/^(\d{1,2})(?:st|nd|rd|th)?[\s-]+([A-Za-z]{3,9})\.?[\s,-]+(\d{2,4})/))) {
+      const mo = MONTHS[m[2].slice(0,3).toLowerCase()]; if (mo) return ymd(+m[3], mo, +m[1]);
+    }
+    if ((m = s.match(/^([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})/))) {
+      const mo = MONTHS[m[1].slice(0,3).toLowerCase()]; if (mo) return ymd(+m[3], mo, +m[2]);
+    }
+    if (/^\d{5}(\.\d+)?$/.test(s)) {
+      const n = Math.floor(+s);
+      if (n > 20000 && n < 80000) return new Date(Date.UTC(1899, 11, 30) + n*86400000).toISOString().slice(0,10);
+    }
+    const d = new Date(s);
+    return isNaN(d) ? null : ymd(d.getFullYear(), d.getMonth()+1, d.getDate());
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Dataset parsers
+// ═══════════════════════════════════════════════════════════════════════════
+const TRIP_REQUIRED = ['OpsDate','Crew ID','Rank','Crew Base','Trip Base'];
+
+function parseTrips(text) {
+  const firstLine = text.replace(/^﻿/, '').split(/\r?\n/)[0];
+  const sep = (firstLine.match(/\t/g)||[]).length > (firstLine.match(/,/g)||[]).length ? '\t' : ',';
+  const rows = parseCSVText(text, sep);
+  if (!rows.length) throw new Error('File appears to be empty');
+  const headers = rows[0].map(h => h.trim());
+  const missing = TRIP_REQUIRED.filter(c => !headers.includes(c));
+  if (missing.length) {
+    throw new Error('Missing required columns: ' + esc(missing.join(', ')) + '<br><br>Expected: <code>' +
+      TRIP_REQUIRED.join('</code>, <code>') + '</code><br>Found: <code>' + headers.slice(0,40).map(esc).join('</code>, <code>') + '</code>');
+  }
+  const di = headers.indexOf('OpsDate');
+  const parseDate = makeDateParser(rows.slice(1).map(r => r[di]));
+  const records = [];
+  for (let i = 1; i < rows.length; i++) {
+    const vals = rows[i];
+    if (vals.length < 5) continue;
+    const rec = {};
+    headers.forEach((h, j) => rec[h] = (vals[j]||'').trim());
+    if (!rec['OpsDate'] || !rec['Crew Base'] || !rec['Trip Base']) continue;
+    rec['Crew Base'] = rec['Crew Base'].toUpperCase();
+    rec['Trip Base'] = rec['Trip Base'].toUpperCase();
+    rec['Rank'] = rec['Rank'].toUpperCase();
+    const date = parseDate(rec['OpsDate']);
+    if (!date) continue;
+    rec._date = date;
+    rec._month = date.slice(0,7);
+    rec._crewAoc = AOC_OF[rec['Crew Base']] || 'Other';
+    rec._tripAoc = AOC_OF[rec['Trip Base']] || 'Other';
+    records.push(rec);
+  }
+  if (!records.length) throw new Error('No valid records found. Check that OpsDate, Crew Base and Trip Base are populated.');
+  return records;
+}
+
+// ── WFLY sources ────────────────────────────────────────────────────────────
+// Three raw exports feed the WFLY section; they're joined by base + day in the browser.
+//   • WFLY  — crewBid details ("Day of $ Date", Base, Rank, crewBid, PT Contract, PT Capped?, Activity, special_activity_code)
+//   • ULV   — Crew Schedule Statistics, GROUND DUTIES:ULV (one column per day, "ULV" where granted)
+//   • Disc. — Discretion Report (Detailed Format), one row per crew member per extended flight
+const PILOT_RANKS = new Set(['CP','FO']);
+// Bases that appear in WFLY / discretion data beyond the tripping AOC list
+const EXTRA_BASES = {RAK:'Morocco'};
+const COUNTRY_OF = {
+  BFS:'UK',BHX:'UK',BRS:'UK',EDI:'UK',GLA:'UK',LGW:'UK',LPL:'UK',LTN:'UK',MAN:'UK',NCL:'UK',SEN:'UK',
+  AGP:'Spain',ALC:'Spain',BCN:'Spain',PMI:'Spain',FAO:'Portugal',LIS:'Portugal',OPO:'Portugal',
+  BOD:'France',CDG:'France',LYS:'France',NCE:'France',NTE:'France',ORY:'France',
+  BER:'Germany',AMS:'Netherlands',FCO:'Italy',LIN:'Italy',MXP:'Italy',NAP:'Italy',
+  BSL:'Switzerland',GVA:'Switzerland',...EXTRA_BASES
+};
+const isWflyBase = b => ALL_BASE_SET.has(b) || b in EXTRA_BASES;
+const REASONS = {
+  CRWABS:'Crewing absence', CRWMS:'Crewing — maintaining core standby', CRWOPD:'Crewing operational disruption (incl. discretion)',
+  ROSABS:'Rostering absence', CRWHN:'Crewing — duty not crewed from handover', CRTSIM:'Crewing training — SIM',
+  CRWFLC:'Crewing — flight completion', ROSEST:'Rostering — establishment', CRTLT:'Crewing training — line training',
+  CRWST:'Crewing — covering strike action', ROSST:'Rostering — covering strike action', CRWVIO:'Crewing violations',
+  ROSBM:'Rostering — base management request', CRWBM:'Crewing — base management request', ROSUN:'Rostering — late notice union request',
+  TRPSIM:'Training planning — SIM', TRPLT:'Training planning — line training', CRWCHE:'Crewing — change (unspecified)', UPRAN:'Upgrade/rank change'
+};
+
+function readDelimited(text) {
+  const firstLine = text.replace(/^﻿/, '').split(/\r?\n/)[0];
+  const sep = (firstLine.match(/\t/g)||[]).length > (firstLine.match(/,/g)||[]).length ? '\t' : ',';
+  return parseCSVText(text, sep);
+}
+
+function parseWfly(text) {
+  const rows = readDelimited(text);
+  const headers = (rows[0] || []).map(h => h.trim());
+  const need = ['Day of $ Date','Base','Rank','crewBid','Activity'];
+  const missing = need.filter(c => !headers.includes(c));
+  if (missing.length) throw new Error('WFLY file is missing columns: <code>' + missing.map(esc).join('</code>, <code>') + '</code>');
+  const col = name => headers.indexOf(name);
+  const iD = col('Day of $ Date'), iB = col('Base'), iR = col('Rank'), iC = col('crewBid'), iPT = col('PT Contract'),
+        iCap = col('PT Capped?'), iA = col('Activity'), iS = col('special_activity_code');
+  const parseDate = makeDateParser(rows.slice(1).map(r => r[iD]));
+  const out = [];
+  for (const r of rows.slice(1)) {
+    const rank = (r[iR]||'').trim().toUpperCase();
+    if (!PILOT_RANKS.has(rank)) continue;            // WFLY audit scope: Captains and First Officers
+    const date = parseDate(r[iD]);
+    if (!date) continue;
+    const base = (r[iB]||'').trim().toUpperCase();
+    const pt = iPT > -1 ? (r[iPT]||'').trim() : '';
+    const code = iS > -1 ? (r[iS]||'').trim() : '';
+    out.push({
+      crewId: (r[iC]||'').trim().replace(/\.0$/, ''), date, base, country: COUNTRY_OF[base] || 'Other', rank,
+      activity: (r[iA]||'').trim(), reasonCode: code || '(none)', reasonDesc: code ? (REASONS[code] || 'Other / unknown') : 'No reason code recorded',
+      employment: pt ? 'Part-time' : 'Full-time', ptCapped: pt ? ((iCap > -1 && (r[iCap]||'').trim()) || 'Uncapped') : 'N/A'
+    });
+  }
+  if (!out.length) throw new Error('No CP/FO rows found in the WFLY file.');
+  return out;
+}
+
+function parseUlv(text) {
+  const rows = parseCSVText(text, ',').map(r => r.map(c => c.trim()));
+  const period = text.match(/(\d{2})\/(\d{2})\/(\d{4})\s*-\s*(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!period) throw new Error('Could not find the report period (dd/mm/yyyy-dd/mm/yyyy) in the ULV file.');
+  let year = +period[3], lastMonth = +period[2];
+  const out = [];
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] !== 'ID' || rows[i][1] !== 'Name') continue;
+    // Row above the header names the month where each run of day columns starts
+    const monthRow = rows[i-1] || [], dayRow = rows[i];
+    const colDate = [];
+    let month = null;
+    for (let c = 4; c < dayRow.length; c++) {
+      const label = (monthRow[c] || '').slice(0,3).toLowerCase();
+      if (MONTHS[label]) {
+        const m = MONTHS[label];
+        if (month === null && m < lastMonth && lastMonth - m > 6) year++;      // block starts in a new year
+        else if (month !== null && m < month) year++;                           // Dec → Jan inside a block
+        month = m;
+      }
+      const d = +dayRow[c];
+      if (month && d) colDate[c] = ymd(year, month, d);
+    }
+    if (month) lastMonth = month;
+    for (let j = i + 1; j < rows.length && /^\d+$/.test(rows[j][0] || ''); j++) {
+      const r = rows[j];
+      const parts = (r[2] || '').split(/\s+/);
+      const base = (parts[0] || '').toUpperCase(), rank = (parts[parts.length-1] || '').toUpperCase();
+      for (let c = 4; c < r.length; c++) if (r[c] === 'ULV' && colDate[c]) out.push({crewId: r[0], date: colDate[c], base, rank});
+    }
+  }
+  if (!out.length) throw new Error('No ULV days found. Expected the Crew Schedule Statistics "GROUND DUTIES:ULV" export.');
+  return out;
+}
+
+function parseDisc(text) {
+  const rows = parseCSVText(text, ',').map(r => r.map(c => c.trim()));
+  const hi = rows.findIndex(r => r[0] === 'DATE' && r[1] === 'Flight');
+  if (hi < 0) throw new Error('Could not find the DATE / Flight header in the discretion report.');
+  const parseDate = makeDateParser(rows.slice(hi+1).map(r => r[0]));
+  const mins = s => { const m = /^(\d+):(\d{2})$/.exec(s || ''); return m ? +m[1]*60 + +m[2] : 0; };
+  const out = [];
+  for (const r of rows.slice(hi+1)) {
+    const date = parseDate(r[0]);
+    if (!date || !r[1]) continue;
+    out.push({date, flight: r[1], dep: (r[2]||'').toUpperCase(), arr: (r[3]||'').toUpperCase(), extMin: mins(r[6]), id: r[7] || '', name: (r[8] || '').replace(/\s+/g, ' ')});
+  }
+  if (!out.length) throw new Error('No discretion rows found.');
+  return out;
+}
+
+// Join the three sources into the structure the WFLY view renders
+function buildWfly() {
+  const S = DATA.src;
+  if (!S.wfly) { DATA.wfly = null; DATA.meta.wflyLoaded = false; return; }
+  const rates = DATA.settings.rates || {};
+
+  // Discretion: one event per flight (deduplicated across crew), attributed to a base via the route
+  const discIdx = {}, discByMonth = {}, discByBase = {}, discEvents = {};
+  for (const d of S.disc || []) {
+    const k = `${d.date}|${d.flight}|${d.dep}|${d.arr}`;
+    if (!discEvents[k]) {
+      const base = isWflyBase(d.dep) ? d.dep : isWflyBase(d.arr) ? d.arr : null;
+      discEvents[k] = {date: d.date, flight: d.flight, dep: d.dep, arr: d.arr, extMin: d.extMin, base, crew: []};
+    }
+    const e = discEvents[k];
+    e.crew.push({id: d.id, name: d.name});
+  }
+  const discList = Object.values(discEvents);
+  for (const e of discList) {
+    const m = e.date.slice(0,7);
+    discByMonth[m] = (discByMonth[m]||0) + 1;
+    if (!e.base) continue;
+    (discIdx[e.base+'|'+e.date] = discIdx[e.base+'|'+e.date] || []).push(e);
+    discByBase[e.base] = (discByBase[e.base]||0) + 1;
+  }
+
+  // ULV: CP/FO days granted, by base and day
+  const ulvIdx = {}, ulvByMonth = {}, ulvByBase = {};
+  let ulvTotal = 0;
+  for (const u of S.ulv || []) {
+    if (!PILOT_RANKS.has(u.rank)) continue;
+    ulvTotal++;
+    (ulvIdx[u.base+'|'+u.date] = ulvIdx[u.base+'|'+u.date] || []).push(u);
+    ulvByMonth[u.date.slice(0,7)] = (ulvByMonth[u.date.slice(0,7)]||0) + 1;
+    ulvByBase[u.base] = (ulvByBase[u.base]||0) + 1;
+  }
+
+  const EVENTS = S.wfly.map(e => ({...e,
+    estCost: +rates[e.rank] || 0,
+    discretionThatDay: (discIdx[e.base+'|'+e.date] || []).length,
+    ulvThatDay: (ulvIdx[e.base+'|'+e.date] || []).length}));
+
+  const matrix = (items, byBase) => {
+    const months = [...new Set(items.map(x => x.date.slice(0,7)))].sort();
+    const bases = Object.entries(byBase).sort((a,b) => b[1]-a[1]).slice(0, 12).map(([b]) => b);
+    const m = Object.fromEntries(bases.map(b => [b, months.map(() => 0)]));
+    for (const x of items) if (m[x.base]) m[x.base][months.indexOf(x.date.slice(0,7))]++;
+    return {matrixMonths: months, matrixBases: bases, matrix: m};
+  };
+  const attributed = discList.filter(e => e.base);
+  DATA.wfly = {
+    EVENTS,
+    DISCRETION_DETAIL: discIdx,
+    ULV_DETAIL: ulvIdx,
+    DISCRETION_SUMMARY: S.disc ? {
+      fullTotal: discList.length, attributedTotal: attributed.length,
+      avgExtMinutes: discList.length ? +(discList.reduce((s,e) => s + e.extMin, 0) / discList.length).toFixed(1) : 0,
+      byMonth: discByMonth, baseTable: Object.entries(discByBase).map(([base, discretion]) => ({base, discretion})),
+      ...matrix(attributed, discByBase)} : null,
+    ULV_SUMMARY: S.ulv ? {
+      total: ulvTotal, byMonth: ulvByMonth, baseTable: Object.entries(ulvByBase).map(([base, ulv]) => ({base, ulv})),
+      ...matrix((S.ulv || []).filter(u => PILOT_RANKS.has(u.rank)), ulvByBase)} : null,
+  };
+  DATA.meta.wflyLoaded = true;
+}
+
+function detectKind(text) {
+  const head = text.replace(/^﻿/, '').slice(0, 6000);
+  const first = head.split(/\r?\n/)[0];
+  if (/(^|[\t,"])OpsDate([\t,"]|$)/.test(first)) return 'trips';
+  if (/crewBid/.test(first) && /Day of \$ Date/.test(first)) return 'wfly';
+  if (/Discretion Report/i.test(head)) return 'disc';
+  if (/GROUND DUTIES/i.test(head) || (/Detail by Crew Member/i.test(head) && /ULV/.test(text))) return 'ulv';
+  throw new Error('Could not recognise this file. Expected the tripping CSV (<code>OpsDate</code>), the WFLY crewBid CSV (<code>Day of $ Date</code>), the ULV ground-duties report or the discretion report.');
+}
+
+const KINDS = {
+  trips: {label:'Tripping',   parse:parseTrips, set:recs => { DATA.trips.raw = recs || []; DATA.meta.tripsLoaded = !!(recs && recs.length); }},
+  wfly:  {label:'WFLY ($)',   parse:parseWfly,  set:recs => { DATA.src.wfly = recs; buildWfly(); wInitFilters(); }},
+  ulv:   {label:'ULV',        parse:parseUlv,   set:recs => { DATA.src.ulv = recs; buildWfly(); }},
+  disc:  {label:'Discretion', parse:parseDisc,  set:recs => { DATA.src.disc = recs; buildWfly(); }},
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Cloud — shared workspace in Netlify Blobs (/api/data). Datasets are stored gzip'd
+// in ≤3 MB chunks and re-parsed on load.
+// ═══════════════════════════════════════════════════════════════════════════
+const CHUNK_BYTES = 3 * 1024 * 1024;
+async function gzip(text) {
+  return new Uint8Array(await new Response(new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+}
+async function gunzip(parts) {
+  return new Response(new Blob(parts).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+}
+
+const Cloud = {
+  mode: 'unknown', manifest: null, pending: {}, queue: Promise.resolve(), state: 'idle', statusText: '',
+
+  async api(query, opts = {}) {
+    const res = await fetch('/api/data' + query, {credentials:'same-origin', cache:'no-store', ...opts,
+      headers: {'x-crewflow':'1', ...(opts.headers || {})}});
+    if (res.status === 401) { location.href = '/login'; throw new Error('Session expired — please sign in again'); }
+    if (!res.ok) { const b = await res.json().catch(() => ({})); throw new Error(b.error || `HTTP ${res.status}`); }
+    return res;
+  },
+  async init() {
+    try {
+      const res = await this.api('');
+      if (!(res.headers.get('content-type') || '').includes('json')) throw new Error('no api');
+      this.manifest = await res.json();
+      this.mode = 'cloud';
+    } catch { this.mode = 'local'; this.manifest = null; }
+    this.renderStatus();
+    return this.manifest;
+  },
+  datasets() { return this.manifest?.datasets || {}; },
+  async fetchText(kind) {
+    const ds = this.datasets()[kind], parts = [];
+    for (let i = 0; i < ds.chunks; i++) parts.push(await (await this.api(`?kind=${kind}&chunk=${i}`)).arrayBuffer());
+    return gunzip(parts);
+  },
+  save(kind, text, name, records) {
+    if (this.mode !== 'cloud') return Promise.resolve();
+    this.queue = this.queue.then(() => this._save(kind, text, name, records));
+    return this.queue;
+  },
+  async _save(kind, text, name, records) {
+    const label = KINDS[kind]?.label || 'Settings';
+    try {
+      this.setStatus('saving', `Saving ${label}…`);
+      const gz = await gzip(text);
+      const n = Math.max(1, Math.ceil(gz.byteLength / CHUNK_BYTES));
+      const upload = crypto.randomUUID();
+      for (let i = 0; i < n; i++) {
+        if (n > 1) this.setStatus('saving', `Saving ${label} ${i+1}/${n}…`);
+        await this.api(`?kind=${kind}&upload=${upload}&chunk=${i}`, {method:'PUT',
+          headers:{'content-type':'application/octet-stream'}, body: gz.slice(i*CHUNK_BYTES, (i+1)*CHUNK_BYTES)});
+      }
+      const res = await this.api(`?kind=${kind}&upload=${upload}&commit=1`, {method:'POST',
+        headers:{'content-type':'application/json'}, body: JSON.stringify({chunks:n, name, records, bytes:text.length})});
+      this.manifest = await res.json();
+      delete this.pending[kind];
+      if (DATA.meta.files[kind]) DATA.meta.files[kind].savedAt = this.datasets()[kind]?.uploadedAt;
+      renderDatasets();
+      this.setStatus(Object.keys(this.pending).length ? 'error' : 'ok');
+      if (kind !== 'settings') toast(`${label} saved to the shared workspace`, 'ok');
+    } catch (e) {
+      console.error(e);
+      this.pending[kind] = {text, name, records};
+      this.setStatus('error');
+      renderDatasets();
+      toast(`Couldn't save ${label}: ${e.message}`, 'err');
+    }
+  },
+  async remove(kind) {
+    if (this.mode !== 'cloud') return;
+    this.manifest = await (await this.api(`?kind=${kind}`, {method:'DELETE'})).json();
+    delete this.pending[kind];
+    this.setStatus('ok');
+  },
+  async checkForUpdates() {
+    if (this.mode !== 'cloud' || this.state === 'saving') return;
+    try {
+      const latest = await (await this.api('')).json();
+      const mine = this.datasets();
+      if ([...Object.keys(KINDS), 'settings'].some(k => (latest.datasets?.[k]?.uploadId || null) !== (mine[k]?.uploadId || null)) && this.state !== 'saving') this.setStatus('stale');
+    } catch {}
+  },
+  onStatusClick() {
+    if (this.state === 'error') for (const [k, p] of Object.entries(this.pending)) this.save(k, p.text, p.name, p.records);
+    else if (this.state === 'stale') location.reload();
+  },
+  setStatus(state, text) { this.state = state; this.statusText = text || ''; this.renderStatus(); },
+  renderStatus() {
+    const el = $('sync'), txt = $('sync-txt');
+    let state = this.state, label = this.statusText;
+    if (this.mode === 'local') { state = 'local'; label = 'Local only — not saved'; el.title = 'Workspace storage unavailable (not running on Netlify). Data stays in this tab.'; }
+    else if (state === 'saving') el.title = 'Uploading to the shared workspace';
+    else if (state === 'error') { label = 'Save failed · retry'; el.title = 'Click to retry'; }
+    else if (state === 'stale') { label = '↻ New data · reload'; el.title = 'Someone uploaded newer data — click to reload'; }
+    else { state = 'ok'; label = this.manifest?.updatedAt ? 'Saved · ' + fmtWhen(this.manifest.updatedAt) : 'Workspace ready'; el.title = 'Data is stored privately and loads automatically for everyone signed in'; }
+    el.className = 'sync ' + state;
+    txt.textContent = label;
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Loading files
+// ═══════════════════════════════════════════════════════════════════════════
+function pickFile(kind) { $('file-'+kind).click(); }
+function onFilePicked(input, kind) { const f = input.files[0]; input.value = ''; if (f) loadFile(f, kind); }
+async function onFilesPicked(input) { const fs = [...input.files]; input.value = ''; for (const f of fs) await loadFile(f); }
+
+async function loadFile(file, forcedKind) {
+  setLoading('Reading ' + file.name + '…');
+  try {
+    const text = decodeBytes(new Uint8Array(await file.arrayBuffer()));
+    let kind = forcedKind;
+    try { kind = detectKind(text); } catch (e) { if (!kind) throw e; }
+    setLoading(`Parsing ${KINDS[kind].label}…`);
+    await nextFrame();
+    const parsed = KINDS[kind].parse(text);
+    KINDS[kind].set(parsed);
+    const n = parsed.length;
+    DATA.meta.files[kind] = {name: file.name, records: n, savedAt: null};
+    afterDataChange(kind);
+    hideModal();
+    setSection(kind === 'trips' ? 'trips' : 'wfly');
+    toast(`Loaded ${fmtN(n)} ${KINDS[kind].label} rows from ${file.name}`, 'ok');
+    Cloud.save(kind, text, file.name, n);
+  } catch (e) {
+    console.error(e);
+    showError(e.message);
+  } finally {
+    clearLoading();
+  }
+}
+
+function afterDataChange(kind) {
+  if (kind === 'trips') { initMonthSelect(); applyFilters(); }
+  else { if (kind === 'wfly' && !DATA.src.wfly) wInitFilters(); renderCurrent(); }
+  renderDatasets();
+}
+
+function clearDataset(kind) {
+  const shared = Cloud.mode === 'cloud';
+  $('modal-inner').innerHTML = `
+    <h2>Remove ${esc(KINDS[kind].label)} data?</h2>
+    <p>${shared ? 'This removes it from the <strong>shared workspace</strong> for everyone.' : 'This clears it from this tab.'} You can upload it again at any time.</p>
+    <div class="modal-acts"><button class="mbtn" onclick="hideModal()">Cancel</button><button class="mbtn danger" onclick="confirmClear(${ja(kind)})">Remove</button></div>`;
+  $('modal-overlay').classList.add('on');
+}
+async function confirmClear(kind) {
+  hideModal();
+  try {
+    await Cloud.remove(kind);
+    KINDS[kind].set(null);
+    delete DATA.meta.files[kind];
+    afterDataChange(kind);
+    toast(`${KINDS[kind].label} data removed`, 'ok');
+  } catch (e) { toast('Could not remove: ' + e.message, 'err'); }
+}
+
+function renderDatasets() {
+  $('ds-list').innerHTML = Object.entries(KINDS).map(([kind, k]) => {
+    const f = DATA.meta.files[kind];
+    if (!f) return `<div class="ds-row"><span class="ds-dot"></span>
+      <div class="ds-info"><div class="ds-name">${k.label}</div><div class="ds-meta">Not loaded</div></div>
+      <button class="ds-btn" onclick="pickFile('${kind}')" title="Load">↑</button></div>`;
+    const saved = Cloud.mode === 'cloud' && f.savedAt;
+    const status = saved ? 'saved ' + fmtWhen(f.savedAt) : Cloud.mode === 'cloud' ? (Cloud.pending[kind] ? 'not saved' : 'saving…') : 'this tab only';
+    return `<div class="ds-row" title="${esc(f.name)}"><span class="ds-dot ${saved ? 'on' : 'local'}"></span>
+      <div class="ds-info"><div class="ds-name">${k.label}</div><div class="ds-meta">${fmtN(f.records)} rows · ${esc(status)}</div></div>
+      <button class="ds-btn" onclick="pickFile('${kind}')" title="Replace">↑</button>
+      <button class="ds-btn del" onclick="clearDataset('${kind}')" title="Remove">✕</button></div>`;
+  }).join('');
+}
+
+let dragDepth = 0;
+window.addEventListener('dragenter', e => {
+  if (![...(e.dataTransfer?.types || [])].includes('Files')) return;
+  e.preventDefault(); dragDepth++; $('dropzone').classList.add('on');
+});
+window.addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; $('dropzone').classList.remove('on'); } });
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', async e => {
+  e.preventDefault(); dragDepth = 0; $('dropzone').classList.remove('on');
+  for (const f of [...(e.dataTransfer?.files || [])]) await loadFile(f);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Sections & views
+// ═══════════════════════════════════════════════════════════════════════════
+const SECTION_VIEWS = {trips: ['arc','map','notes'], wfly: ['wfly']};
+const lastView = {trips: 'arc', wfly: 'wfly'};
+
+function setSection(section) {
+  DATA.ui.section = section;
+  document.querySelectorAll('.sec-btn').forEach(b => b.classList.toggle('on', b.dataset.section === section));
+  $('tabs-trips').style.display = section === 'trips' ? '' : 'none';
+  $('tabs-wfly').style.display = section === 'wfly' ? '' : 'none';
+  $('sb-trips').style.display = section === 'trips' ? '' : 'none';
+  $('sb-wfly').style.display = section === 'wfly' ? '' : 'none';
+  setView(lastView[section]);
+}
+
+function setView(view) {
+  const section = SECTION_VIEWS.wfly.includes(view) ? 'wfly' : 'trips';
+  DATA.ui.view = view;
+  lastView[section] = view;
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'view-'+view));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.view === view));
+  closeDP();
+  savePrefs();
+  renderCurrent();
+}
+
+function renderCurrent() {
+  hideTooltip();
+  switch (DATA.ui.view) {
+    case 'arc': renderArc(); break;
+    case 'map': renderMap(); break;
+    case 'notes': renderNotes(); break;
+    case 'wfly': renderWfly(); break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Preferences (per browser)
+// ═══════════════════════════════════════════════════════════════════════════
+const PREFS_KEY = 'crewflow.prefs.v2';
+function savePrefs() {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify({
+      section: DATA.ui.section, view: lastView.trips, rank: $('f-rank').value, month: $('f-month').value, dir: $('f-dir').value,
+      min: $('f-min').value, bg: $('f-bg').checked, ncl: $('f-ncl').checked, eg: $('f-eg').checked, cv: $('f-cv').checked,
+      tr: $('f-tr').checked, bases: [...DATA.ui.bases]
+    }));
+  } catch {}
+}
+function restorePrefs() {
+  let p = null;
+  try { p = JSON.parse(localStorage.getItem(PREFS_KEY) || 'null'); } catch {}
+  if (!p) return;
+  if (['all','pilots','cabin','CP','FO'].includes(p.rank)) $('f-rank').value = p.rank;
+  if (['all','intra','inter'].includes(p.dir)) $('f-dir').value = p.dir;
+  if (+p.min >= 1 && +p.min <= 30) { $('f-min').value = p.min; $('min-val').textContent = p.min; }
+  for (const k of ['ncl','eg','cv','tr','bg']) if (typeof p[k] === 'boolean') $('f-'+k).checked = p[k];
+  if (Array.isArray(p.bases)) DATA.ui.bases = new Set(p.bases.filter(b => ALL_BASE_SET.has(b)));
+  if (p.month) DATA.ui.pendingMonth = p.month;
+  if (SECTION_VIEWS.trips.includes(p.view)) lastView.trips = p.view;
+  if (p.section === 'wfly' || p.section === 'trips') DATA.ui.section = p.section;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Tripping — filters
+// ═══════════════════════════════════════════════════════════════════════════
+function applyFilters() {
+  savePrefs();
+  if (DATA.meta.tripsLoaded) {
+    const excNCL = $('f-ncl').checked, excEg = $('f-eg').checked, excCV = $('f-cv').checked, excTr = $('f-tr').checked;
+    const rank = $('f-rank').value, month = $('f-month').value, dir = $('f-dir').value, bases = DATA.ui.bases;
+    DATA.trips.filtered = DATA.trips.raw.filter(r => {
+      const cb = r['Crew Base'], tb = r['Trip Base'], rk = r['Rank'];
+      const tr = r['Training / Non-Training - Desc'] || '';
+      if (!bases.has(cb) && !bases.has(tb)) return false;
+      if (excNCL && cb==='NCL' && tb==='LGW' && rk==='FO' && tr==='Training Flight') return false;
+      if (excEg && (tb==='SSH' || tb==='HRG')) return false;
+      if (excCV && tb==='SID') return false;
+      if (excTr && TRAINING_TRIPS.has(tr)) return false;
+      if (rank === 'pilots' ? !PILOT_RANKS.has(rk) : rank === 'cabin' ? PILOT_RANKS.has(rk) : (rank !== 'all' && rk !== rank)) return false;
+      if (month !== 'all' && r._month !== month) return false;
+      if (dir === 'intra' && r._crewAoc !== r._tripAoc) return false;
+      if (dir === 'inter' && r._crewAoc === r._tripAoc) return false;
+      return true;
+    });
+  } else DATA.trips.filtered = [];
+  MEMO = new Map();
+  updateSidebar();
+  if (DATA.ui.section === 'trips') renderCurrent();
+}
+
+function resetFilters() {
+  $('f-rank').value = 'all'; $('f-month').value = 'all'; $('f-dir').value = 'all';
+  $('f-min').value = 3; $('min-val').textContent = '3'; $('f-bg').checked = false;
+  $('f-ncl').checked = true; $('f-eg').checked = true; $('f-cv').checked = true; $('f-tr').checked = false;
+  $('base-search').value = ''; filterBaseChips('');
+  setBases('all');
+}
+
+function buildBaseGrid() {
+  $('base-grid').innerHTML = ALL_BASES.map(b =>
+    `<div class="base-chip ${aocCls(b)} ${DATA.ui.bases.has(b)?'on':''}" id="bc-${b}" onclick="toggleBase('${b}')" title="${esc(apName(b))}">${b}</div>`).join('');
+  syncChips();
+}
+function syncChips() {
+  document.querySelectorAll('.base-chip').forEach(el => el.classList.toggle('on', DATA.ui.bases.has(el.id.slice(3))));
+  for (const aoc of Object.keys(BASES)) $('aoc-'+aoc).classList.toggle('on', BASES[aoc].every(b => DATA.ui.bases.has(b)));
+}
+function toggleBase(b) { DATA.ui.bases.has(b) ? DATA.ui.bases.delete(b) : DATA.ui.bases.add(b); syncChips(); applyFilters(); }
+function toggleAoc(aoc) {
+  const on = !BASES[aoc].every(b => DATA.ui.bases.has(b));
+  for (const b of BASES[aoc]) on ? DATA.ui.bases.add(b) : DATA.ui.bases.delete(b);
+  syncChips(); applyFilters();
+}
+function setBases(mode) {
+  DATA.ui.bases = mode === 'all' ? new Set(ALL_BASES) : mode === 'none' ? new Set() : new Set(BASES[mode]);
+  syncChips(); applyFilters();
+}
+function filterBaseChips(q) {
+  const lq = q.toLowerCase();
+  document.querySelectorAll('.base-chip').forEach(c => {
+    const code = c.id.slice(3);
+    c.style.display = (code.toLowerCase().includes(lq) || apName(code).toLowerCase().includes(lq)) ? '' : 'none';
+  });
+}
+function initMonthSelect() {
+  const months = [...new Set(DATA.trips.raw.map(r => r._month))].sort();
+  const sel = $('f-month'), want = DATA.ui.pendingMonth || sel.value;
+  sel.innerHTML = '<option value="all">All months</option>' + months.map(m => `<option value="${m}">${fmtMonth(m)}</option>`).join('');
+  sel.value = months.includes(want) ? want : 'all';
+  DATA.ui.pendingMonth = null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Tripping — overlap analytics
+// A "crossing" = on the same date, crew moved A→B AND other crew moved B→A.
+// ═══════════════════════════════════════════════════════════════════════════
+function computeCrossings(recs) {
+  const byDate = {};
+  for (const r of recs) {
+    if (r['Crew Base'] === r['Trip Base']) continue;
+    const d = byDate[r._date] = byDate[r._date] || {};
+    const k = r['Crew Base']+'→'+r['Trip Base'];
+    d[k] = (d[k] || 0) + 1;
+  }
+  const out = [];
+  for (const [date, routes] of Object.entries(byDate)) {
+    for (const [route, n] of Object.entries(routes)) {
+      const [a, b] = route.split('→');
+      const rev = routes[b+'→'+a];
+      if (rev && a < b) out.push({date, a, b, ab:n, ba:rev});
+    }
+  }
+  return out;
+}
+function computeHotspots(xings) {
+  const m = {};
+  for (const x of xings) {
+    const k = x.a+'↔'+x.b;
+    const h = m[k] = m[k] || {k, a:x.a, b:x.b, days:0, moves:0, ab:0, ba:0, dates:[]};
+    h.days++; h.moves += x.ab + x.ba; h.ab += x.ab; h.ba += x.ba; h.dates.push(x.date);
+  }
+  return Object.values(m).sort((a,b) => b.days - a.days || b.moves - a.moves);
+}
+const getCrossings = () => memo('x', () => computeCrossings(DATA.trips.filtered));
+const getHotspots = () => memo('hs', () => computeHotspots(getCrossings()).filter(h => h.days >= +$('f-min').value));
+const getBaseCounts = () => memo('bc', () => {
+  const out = {}, inn = {};
+  for (const r of DATA.trips.filtered) { out[r['Crew Base']] = (out[r['Crew Base']]||0)+1; inn[r['Trip Base']] = (inn[r['Trip Base']]||0)+1; }
+  return {out, inn};
+});
+
+function updateSidebar() {
+  if (!DATA.meta.tripsLoaded) {
+    ['s-tot','s-xing','s-moves'].forEach(id => $(id).textContent = '—');
+    $('hs-cross').innerHTML = '<div class="hs-empty">Load tripping data</div>';
+    return;
+  }
+  const hs = getHotspots();
+  $('s-tot').textContent = fmtN(DATA.trips.filtered.length);
+  $('s-xing').textContent = fmtN(hs.length);
+  $('s-moves').textContent = fmtN(hs.reduce((s,h) => s + h.moves, 0));
+  const sel = DATA.ui.selection;
+  $('hs-cross').innerHTML = hs.slice(0, 25).map(h => `
+    <div class="hs-item ${sel && sel.k === h.k ? 'on' : ''}" onclick="pickCross(${ja(h.a)},${ja(h.b)})">
+      <span class="hs-badge">${h.days}d·${h.moves}mv</span>
+      <div class="hs-route">${esc(h.a)} ↔ ${esc(h.b)}</div>
+      <div class="hs-meta">${esc(apName(h.a))} / ${esc(apName(h.b))}</div>
+    </div>`).join('') || '<div class="hs-empty">No overlapping movement in current scope</div>';
+}
+
+function pickCross(a, b) {
+  if (a > b) [a, b] = [b, a];
+  const k = a+'↔'+b;
+  DATA.ui.selection = DATA.ui.selection?.k === k ? null : {k, a, b};
+  updateSidebar(); renderCurrent();
+  if (!DATA.ui.selection) return closeDP();
+  const rel = getCrossings().filter(x => x.a === a && x.b === b).sort((x,y) => x.date.localeCompare(y.date));
+  const tot = rel.reduce((s,x) => s + x.ab + x.ba, 0);
+  openDP(`${a} ↔ ${b}`, `${rel.length} overlap days · ${tot} moves · ${AOC_OF[a]||'Other'} ↔ ${AOC_OF[b]||'Other'}`, `
+    <table class="tbl"><tr><th>Date</th><th class="r">${esc(a)}→${esc(b)}</th><th class="r">${esc(b)}→${esc(a)}</th></tr>
+    ${rel.slice(0,60).map(x => `<tr><td>${x.date}</td><td class="r">${x.ab}</td><td class="r">${x.ba}</td></tr>`).join('')}
+    ${rel.length > 60 ? `<tr><td colspan="3" style="color:var(--mut);">+${rel.length-60} more — in Excel export</td></tr>` : ''}</table>`);
+}
+function openDP(title, sub, body) {
+  $('dp-title').textContent = title; $('dp-sub').textContent = sub; $('dp-body').innerHTML = body;
+  $('dp').classList.add('on');
+}
+function closeDP(rerender) {
+  $('dp').classList.remove('on');
+  const had = !!DATA.ui.selection;
+  DATA.ui.selection = null;
+  if (rerender && had) { updateSidebar(); renderCurrent(); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Tripping — Arc & Map (overlap graphs)
+// ═══════════════════════════════════════════════════════════════════════════
+function svgSize(viewId, svg) {
+  const v = $(viewId), legend = v.querySelector('.legend');
+  const W = v.clientWidth, H = v.clientHeight - (legend ? legend.offsetHeight : 32);
+  svg.attr('width', W).attr('height', H);
+  return {W, H};
+}
+function emptySvg(svg, W, H, msg) {
+  svg.append('text').attr('x',W/2).attr('y',H/2).attr('text-anchor','middle').attr('fill','#6b7083').attr('font-family','JetBrains Mono').attr('font-size',12).text(msg);
+}
+function svgTitle(svg, title, sub) {
+  svg.append('text').attr('x',16).attr('y',22).attr('font-family','Space Grotesk').attr('font-size',13).attr('font-weight',600).attr('fill','#e4e6ec').text(title);
+  svg.append('text').attr('x',16).attr('y',38).attr('font-family','JetBrains Mono').attr('font-size',9).attr('fill','#6b7083').text(sub);
+}
+// Edges to draw: every crossing pair, plus (optionally) faded non-overlapping flows between the same bases
+function graphEdges() {
+  const hs = getHotspots();
+  const edges = hs.map(h => ({...h, cross:true, n:h.moves}));
+  if ($('f-bg').checked) {
+    const crossKeys = new Set(hs.map(h => h.k)), flow = {};
+    for (const r of DATA.trips.filtered) {
+      const a = r['Crew Base'], b = r['Trip Base'];
+      if (a === b) continue;
+      const k = a < b ? a+'↔'+b : b+'↔'+a;
+      if (crossKeys.has(k)) continue;
+      const f = flow[k] = flow[k] || {k, a: a < b ? a : b, b: a < b ? b : a, n:0, cross:false};
+      f.n++;
+    }
+    edges.unshift(...Object.values(flow).filter(f => f.n >= 3));
+  }
+  return edges;
+}
+
+function renderArc() {
+  const svg = d3.select('#cv-arc'); svg.selectAll('*').remove();
+  const {W, H} = svgSize('view-arc', svg);
+  if (!DATA.meta.tripsLoaded) return emptySvg(svg, W, H, 'Load a tripping CSV to begin');
+  const edges = graphEdges().filter(e => AP[e.a] && AP[e.b]);
+  const cross = edges.filter(e => e.cross);
+  if (!cross.length) return emptySvg(svg, W, H, 'No overlapping movement matches the current filters');
+
+  const nodes = [...new Set(edges.flatMap(e => [e.a, e.b]))];
+  const order = {UK:0, Europe:1, Swiss:2, Other:3};
+  nodes.sort((a,b) => (order[AOC_OF[a]||'Other'] - order[AOC_OF[b]||'Other']) || a.localeCompare(b));
+  const crossBases = new Set(cross.flatMap(e => [e.a, e.b]));
+  const {out: outCnt, inn: inCnt} = getBaseCounts();
+
+  const cx = W/2, cy = H/2 + 10, R = Math.max(60, Math.min(W, H) * 0.36);
+  const pos = {};
+  nodes.forEach((b, i) => { const a = i*(2*Math.PI/nodes.length) - Math.PI/2; pos[b] = {x: cx + R*Math.cos(a), y: cy + R*Math.sin(a), angle: a}; });
+  const maxN = Math.max(...cross.map(e => e.n), 1);
+  const sw = d3.scaleSqrt().domain([0, maxN]).range([1, 13]);
+  const sel = DATA.ui.selection;
+  const g = svg.append('g');
+
+  edges.sort((x,y) => (x.cross - y.cross) || (x.n - y.n)).forEach(e => {
+    const p1 = pos[e.a], p2 = pos[e.b];
+    const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2, dx = p2.x-p1.x, dy = p2.y-p1.y, dist = Math.hypot(dx, dy) || 1;
+    const bend = Math.min(dist*0.38, 110), nx = -dy/dist*bend, ny = dx/dist*bend;
+    const isSel = sel && sel.k === e.k;
+    const path = g.append('path')
+      .attr('d', `M${p1.x},${p1.y} Q${mx+nx},${my+ny} ${p2.x},${p2.y}`).attr('fill','none');
+    if (!e.cross) {
+      path.attr('stroke', aocHex(e.a)).attr('stroke-width', 0.8).attr('stroke-opacity', sel ? 0.03 : 0.12);
+      return;
+    }
+    path.attr('stroke', '#f87171').attr('stroke-width', sw(e.n) + (isSel ? 2 : 0))
+      .attr('stroke-opacity', isSel ? 0.95 : sel ? 0.12 : 0.25 + 0.6 * e.n / maxN).attr('cursor','pointer')
+      .on('mousemove', ev => showTooltip(ev, `${e.a} ↔ ${e.b}`, [['Overlap days', e.days], [`${e.a}→${e.b}`, e.ab], [`${e.b}→${e.a}`, e.ba], ['AOC', (AOC_OF[e.a]||'Other')+' ↔ '+(AOC_OF[e.b]||'Other')]]))
+      .on('mouseleave', hideTooltip)
+      .on('click', () => pickCross(e.a, e.b));
+  });
+
+  nodes.forEach(b => {
+    const p = pos[b], col = aocHex(b), isX = crossBases.has(b);
+    const isSel = sel && (sel.a === b || sel.b === b);
+    const ng = g.append('g').attr('transform', `translate(${p.x},${p.y})`);
+    ng.append('circle').attr('r', 15).attr('fill', isSel ? col : col+'22').attr('stroke', isX ? '#f87171' : col).attr('stroke-width', isSel ? 2.5 : 1.5).attr('stroke-opacity', isX ? 1 : 0.5);
+    ng.append('text').attr('text-anchor','middle').attr('dy','0.35em').attr('font-family','JetBrains Mono').attr('font-size',9).attr('font-weight',500)
+      .attr('fill', isSel ? '#0a0b0f' : col).text(b);
+    const la = p.angle, anchor = Math.cos(la) > 0.1 ? 'start' : Math.cos(la) < -0.1 ? 'end' : 'middle';
+    ng.append('text').attr('x', Math.cos(la)*25).attr('y', Math.sin(la)*25).attr('text-anchor', anchor).attr('dy','0.35em')
+      .attr('font-family','Space Grotesk').attr('font-size',9).attr('fill','#6b7083').text(apName(b).replace('London ',''));
+    ng.on('mousemove', ev => {
+      const o = outCnt[b]||0, i = inCnt[b]||0;
+      showTooltip(ev, b+' — '+apName(b), [['AOC', AOC_OF[b]||'Other'], ['Out', o], ['In', i], ['Crossing pairs', cross.filter(e => e.a===b || e.b===b).length]]);
+    }).on('mouseleave', hideTooltip);
+  });
+  svgTitle(svg, 'Overlapping crew movement', `${fmtN(cross.length)} crossing pairs · ${fmtN(cross.reduce((s,e) => s+e.n, 0))} moves where crew went both ways on the same day`);
+}
+
+function renderMap() {
+  const svg = d3.select('#cv-map'); svg.selectAll('*').remove();
+  const {W, H} = svgSize('view-map', svg);
+  if (!DATA.meta.tripsLoaded) return emptySvg(svg, W, H, 'Load a tripping CSV to begin');
+  const edges = graphEdges().filter(e => AP[e.a] && AP[e.b]);
+  const cross = edges.filter(e => e.cross);
+  if (!cross.length) return emptySvg(svg, W, H, 'No overlapping movement matches the current filters');
+
+  const nodes = [...new Set(edges.flatMap(e => [e.a, e.b]))];
+  const lats = nodes.map(c => AP[c].lat), lons = nodes.map(c => AP[c].lon);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats), minLon = Math.min(...lons), maxLon = Math.max(...lons);
+  const pad = 65;
+  const project = (lat, lon) => ({
+    x: pad + (lon - minLon + 1) / (maxLon - minLon + 2) * (W - 2*pad),
+    y: pad + 20 + (1 - (lat - minLat + 0.5) / (maxLat - minLat + 1)) * (H - 2*pad - 40)
+  });
+  const crossBases = new Set(cross.flatMap(e => [e.a, e.b]));
+  const {out: outCnt, inn: inCnt} = getBaseCounts();
+  const maxN = Math.max(...cross.map(e => e.n), 1);
+  const sel = DATA.ui.selection;
+  const g = svg.append('g');
+
+  edges.sort((x,y) => (x.cross - y.cross) || (x.n - y.n)).forEach(e => {
+    const p1 = project(AP[e.a].lat, AP[e.a].lon), p2 = project(AP[e.b].lat, AP[e.b].lon);
+    const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2, dx = p2.x-p1.x, dy = p2.y-p1.y, dist = Math.hypot(dx, dy) || 1;
+    const nx = -dy/dist*Math.min(dist*0.22,50), ny = dx/dist*Math.min(dist*0.22,50);
+    const path = g.append('path').attr('d', `M${p1.x},${p1.y} Q${mx+nx},${my+ny} ${p2.x},${p2.y}`).attr('fill','none');
+    if (!e.cross) { path.attr('stroke', aocHex(e.a)).attr('stroke-width', 0.8).attr('stroke-opacity', sel ? 0.03 : 0.12); return; }
+    const isSel = sel && sel.k === e.k, w = 1 + Math.sqrt(e.n/maxN) * 10;
+    path.attr('stroke','#f87171').attr('stroke-width', isSel ? w+2 : w).attr('stroke-opacity', isSel ? 0.9 : sel ? 0.12 : 0.6).attr('cursor','pointer')
+      .on('mousemove', ev => showTooltip(ev, `${e.a} ↔ ${e.b}`, [['Overlap days', e.days], [`${e.a}→${e.b}`, e.ab], [`${e.b}→${e.a}`, e.ba]]))
+      .on('mouseleave', hideTooltip)
+      .on('click', () => pickCross(e.a, e.b));
+  });
+
+  nodes.forEach(code => {
+    const info = AP[code], p = project(info.lat, info.lon), col = aocHex(code), isX = crossBases.has(code);
+    const isSel = sel && (sel.a === code || sel.b === code);
+    const ng = g.append('g').attr('transform', `translate(${p.x},${p.y})`);
+    if (isX) ng.append('circle').attr('r', 13).attr('fill','none').attr('stroke','rgba(248,113,113,0.25)');
+    ng.append('circle').attr('r', 9).attr('fill', isSel ? col : col+'28').attr('stroke', isX ? '#f87171' : col).attr('stroke-width', 1.5);
+    ng.append('text').attr('text-anchor','middle').attr('dy','0.35em').attr('font-family','JetBrains Mono').attr('font-size',8).attr('font-weight',500).attr('fill', isSel ? '#0a0b0f' : col).text(code);
+    ng.append('text').attr('y', 19).attr('text-anchor','middle').attr('font-family','Space Grotesk').attr('font-size',7).attr('fill','#6b7083').text(info.n.replace('London ',''));
+    ng.on('mousemove', ev => { const o = outCnt[code]||0, i = inCnt[code]||0; showTooltip(ev, code+' — '+info.n, [['AOC', AOC_OF[code]||'Other'], ['Out', o], ['In', i]]); })
+      .on('mouseleave', hideTooltip);
+  });
+  svgTitle(svg, 'Overlap map', `${fmtN(cross.length)} crossing routes · click a red route for the dates`);
+}
+
+function renderNotes() {
+  $('vb-notes').innerHTML = `
+    <div class="h1">How to read this</div>
+    <div class="sub">These views flag patterns worth investigating. They don't prove causation or wrongdoing — validate against rostering decisions before drawing conclusions.</div>
+    <div class="method-sec"><div class="method-metric" style="color:var(--cross);">Crossings (tripping overlap)</div>
+      <div class="method-def">On the same date, crew were tripped from base A to base B <strong>and</strong> other crew from B to A. Each red arc is one base pair; thickness is the number of overlapping moves; "days" is how many dates it happened on. The <em>min crossing days</em> slider hides one-off pairs. Turn on <em>background flows</em> to see non-overlapping movement faded behind.</div>
+      <div class="method-caveat">Simultaneous two-way movement is suspicious but not proof of inefficiency — qualifications, aircraft type or duty requirements may justify it. Counts are trip records, not unique crew. NCL pipeline, Egypt standby and Cape Verde are excluded by default.</div></div>
+    <div class="method-sec"><div class="method-metric" style="color:var(--ezy);">WFLY vs discretion &amp; unpaid leave</div>
+      <div class="method-def">Each WFLY (Willing to Fly) payment is shown with the number of <strong>discretion</strong> (FDP extension) events and <strong>ULV</strong> (unpaid leave) grants at the same base on the same day. A WFLY payment on a day ULV was granted at that base, or where discretion was in use, is a prompt to ask whether the cover was needed. Base tables compare the current selection with each base's full-year discretion/ULV volume.</div>
+      <div class="method-caveat">Discretion base is attributed from the flight route; ULV peaks in winter while WFLY peaks in summer, so annual ratios understate same-day overlap. Estimated costs come from the audit export.</div></div>
+    <div class="method-sec"><div class="method-metric">Data &amp; privacy</div>
+      <div class="method-def">Files you load are compressed and saved to this site's private, password-protected workspace (Netlify Blobs), so they load automatically next time for anyone signed in. Nothing is stored in the code repository. Each new upload of the same report type replaces the previous one. The WFLY cost rates are a shared setting stored in the same workspace.</div></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WFLY audit — vs discretion & unpaid leave
+// ═══════════════════════════════════════════════════════════════════════════
+const W = {acts: new Set(), crew: null, sortKey: 'date', sortDir: 1, open: {disc:true, ulv:true, repeat:false}};
+const ROW_LIMIT = 800;
+const uniq = (rows, k) => [...new Set(rows.map(r => r[k]).filter(Boolean))].sort();
+const isRest = a => a === 'REST' || a === 'D/O';
+
+function wInitFilters() {
+  const ev = DATA.wfly?.EVENTS || [];
+  W.acts = new Set(ev.map(r => r.activity)); W.crew = null;
+  const fill = (id, vals, label, fmt = v => v) => { $(id).innerHTML = `<option value="">${label}</option>` + vals.map(v => `<option value="${esc(v)}">${esc(fmt(v))}</option>`).join(''); };
+  fill('w-country', uniq(ev, 'country'), 'All countries');
+  fill('w-base', uniq(ev, 'base'), 'All bases');
+  fill('w-month', [...new Set(ev.map(r => r.date.slice(0,7)))].sort(), 'All months', m => fmtMonth(m));
+  fill('w-rank', uniq(ev, 'rank'), 'All ranks');
+  fill('w-emp', uniq(ev, 'employment'), 'All employment types');
+  fill('w-cap', uniq(ev, 'ptCapped'), 'All contract caps');
+  fill('w-reason', uniq(ev, 'reasonCode'), 'All reasons');
+  $('w-search').value = ''; $('w-cover').value = '';
+  wBuildActs();
+}
+function wBuildActs() {
+  const counts = {};
+  (DATA.wfly?.EVENTS || []).forEach(r => counts[r.activity] = (counts[r.activity]||0) + 1);
+  $('w-acts').innerHTML = Object.entries(counts).sort((a,b) => b[1]-a[1]).map(([a, n]) =>
+    `<label class="act-row ${isRest(a) ? 'rest' : ''}"><input type="checkbox" ${W.acts.has(a) ? 'checked' : ''} onchange="wToggleAct(${ja(a)}, this.checked)">
+     <span class="a-label">${esc(a)}</span><span class="a-count">${fmtN(n)}</span></label>`).join('') || '<div class="hs-empty">Load the WFLY audit</div>';
+}
+function wToggleAct(a, on) { on ? W.acts.add(a) : W.acts.delete(a); renderWfly(); }
+function wSelectActs(list) { W.acts = new Set(list === 'all' ? uniq(DATA.wfly?.EVENTS || [], 'activity') : list); wBuildActs(); renderWfly(); }
+function wCountryChanged() {
+  const c = $('w-country').value, ev = DATA.wfly?.EVENTS || [];
+  const bases = uniq(c ? ev.filter(r => r.country === c) : ev, 'base');
+  $('w-base').innerHTML = '<option value="">All bases</option>' + bases.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
+  renderWfly();
+}
+function wReset() {
+  ['w-country','w-month','w-rank','w-emp','w-cap','w-reason','w-cover'].forEach(id => $(id).value = '');
+  $('w-search').value = ''; W.crew = null;
+  wCountryChanged(); wSelectActs('all');
+}
+function wFiltered() {
+  const ev = DATA.wfly?.EVENTS || [];
+  const f = {country: $('w-country').value, base: $('w-base').value, month: $('w-month').value, rank: $('w-rank').value,
+    emp: $('w-emp').value, cap: $('w-cap').value, reason: $('w-reason').value, cover: $('w-cover').value,
+    q: $('w-search').value.trim().toLowerCase()};
+  return ev.filter(r =>
+    W.acts.has(r.activity) &&
+    (!f.country || r.country === f.country) && (!f.base || r.base === f.base) &&
+    (!f.month || r.date.startsWith(f.month)) && (!f.rank || r.rank === f.rank) &&
+    (!f.emp || r.employment === f.emp) && (!f.cap || r.ptCapped === f.cap) &&
+    (!f.reason || r.reasonCode === f.reason) &&
+    (!W.crew || r.crewId === W.crew) && (!f.q || r.crewId.toLowerCase().includes(f.q)) &&
+    (!f.cover || (f.cover === 'disc' ? r.discretionThatDay > 0 : f.cover === 'ulv' ? r.ulvThatDay > 0 :
+      f.cover === 'either' ? (r.discretionThatDay > 0 || r.ulvThatDay > 0) : (r.discretionThatDay === 0 && r.ulvThatDay === 0))));
+}
+function wSelectionLabel() {
+  const all = uniq(DATA.wfly.EVENTS, 'activity'), act = [...W.acts];
+  if (act.length === all.length) return 'All WFLY instances';
+  if (act.length === 2 && act.every(isRest)) return 'Rest-day WFLY payments';
+  if (!act.length) return 'No activity selected';
+  return 'WFLY — ' + act.sort().join(', ');
+}
+
+function barList(entries, fmtV = fmtN) {
+  if (!entries.length) return '<div class="hs-empty">No data</div>';
+  const max = Math.max(...entries.map(e => e[1]), 1);
+  return entries.map(([k, v]) => `<div class="bar-row"><span>${esc(k)}</span><div class="bar-track"><div class="bar-fill" style="width:${v/max*100}%"></div></div><span class="bar-n">${fmtV(v)}</span></div>`).join('');
+}
+function countBy(rows, key, val = () => 1) {
+  const m = {}; rows.forEach(r => m[r[key]] = (m[r[key]] || 0) + val(r));
+  return Object.entries(m).sort((a,b) => b[1]-a[1]);
+}
+function sameDay(rows, key) {
+  if (!rows.length) return {zero: 0, avg: 0, withAny: 0, cost: 0};
+  const withAny = rows.filter(r => r[key] > 0);
+  return {zero: +(100 - withAny.length/rows.length*100).toFixed(1), avg: +(rows.reduce((s,r) => s + r[key], 0)/rows.length).toFixed(2),
+          withAny: withAny.length, cost: withAny.reduce((s,r) => s + r.estCost, 0)};
+}
+function matrixHtml(sum, colour) {
+  if (!sum?.matrix || !sum.matrixBases) return '<div class="hs-empty">No monthly matrix in this export</div>';
+  const months = sum.matrixMonths, max = Math.max(...sum.matrixBases.flatMap(b => sum.matrix[b] || [0]), 1);
+  return `<div style="overflow-x:auto;"><table class="tbl matrix"><thead><tr><th>Base</th>${months.map(m => `<th>${fmtMonth(m,{month:'short',year:'2-digit'})}</th>`).join('')}</tr></thead><tbody>
+    ${sum.matrixBases.map(b => `<tr><td>${esc(b)}</td>${(sum.matrix[b]||[]).map(v => `<td style="background:${colour}${Math.round(v/max*200).toString(16).padStart(2,'0')};${v/max > 0.55 ? 'color:#0a0b0f;font-weight:600;' : ''}">${v}</td>`).join('')}</tr>`).join('')}
+  </tbody></table></div>`;
+}
+function ratioTable(table, key, label, byBase) {
+  if (!table?.length) return '<div class="hs-empty">No base table in this export</div>';
+  const rows = table.map(r => ({base: r.base, v: +r[key] || 0, wfly: byBase[r.base] || 0}))
+    .map(r => ({...r, ratio: r.v ? r.wfly / r.v : null})).sort((a,b) => b.v - a.v).slice(0, 18);
+  return `<table class="tbl"><thead><tr><th>Base</th><th class="r">${label}</th><th class="r">WFLY (selection)</th><th class="r">Ratio</th></tr></thead><tbody>
+    ${rows.map(r => `<tr><td>${esc(r.base)}</td><td class="r">${fmtN(r.v)}</td><td class="r">${fmtN(r.wfly)}</td><td class="r ${r.ratio !== null && r.ratio >= 0.5 ? 'flag' : ''}">${r.ratio === null ? '—' : r.ratio.toFixed(2)}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+function wTogglePanel(name) { W.open[name] = !W.open[name]; $('p-'+name).classList.toggle('open', W.open[name]); $('t-'+name).textContent = W.open[name] ? 'Less ▴' : 'More ▾'; }
+
+function renderWfly() {
+  const el = $('vb-wfly');
+  if (DATA.ui.view !== 'wfly') return;
+  if (!DATA.meta.wflyLoaded) {
+    el.innerHTML = `<div class="h1">WFLY vs discretion &amp; unpaid leave</div>
+      <div class="sub">Load the three source reports — they're joined by base and day:<br>
+        <strong>WFLY ($)</strong> crewBid details CSV (<code>Day of $ Date</code>, Base, Rank, crewBid, PT Contract, PT Capped?, Activity, special_activity_code)<br>
+        <strong>ULV</strong> Crew Schedule Statistics, GROUND DUTIES:ULV<br>
+        <strong>Discretion</strong> Discretion Report (Detailed Format)<br>
+        They're saved privately to the workspace, so this only needs doing once per refresh of the data.</div>
+      <div class="drop" style="max-width:440px;" onclick="pickFile('any')"><div class="drop-t">↑ Click to load files</div><div class="drop-s">Or drag them anywhere onto the window — several at once is fine</div></div>`;
+    return;
+  }
+  const D = DATA.wfly, all = D.EVENTS, rows = wFiltered();
+  const allCost = all.reduce((s,r) => s + r.estCost, 0), cost = rows.reduce((s,r) => s + r.estCost, 0);
+  const cp = rows.filter(r => r.rank === 'CP').length;
+  const perCrew = {}; rows.forEach(r => perCrew[r.crewId] = (perCrew[r.crewId]||0) + 1);
+  const repeatN = Object.values(perCrew).filter(n => n > 1).length;
+  const capped = rows.filter(r => r.ptCapped === 'Capped').length;
+  const disc = sameDay(rows, 'discretionThatDay'), ulv = sameDay(rows, 'ulvThatDay');
+  const both = rows.filter(r => r.discretionThatDay > 0 || r.ulvThatDay > 0);
+  const byBase = Object.fromEntries(countBy(rows, 'base'));
+  const label = wSelectionLabel();
+
+  // Monthly comparison: selection vs full-year discretion & ULV
+  const wByMonth = {}; rows.forEach(r => { const m = r.date.slice(0,7); wByMonth[m] = (wByMonth[m]||0) + 1; });
+  const dByMonth = D.DISCRETION_SUMMARY?.byMonth || {}, uByMonth = D.ULV_SUMMARY?.byMonth || {};
+  const cmpMonths = [...new Set([...Object.keys(wByMonth), ...Object.keys(dByMonth), ...Object.keys(uByMonth)])].sort();
+  const cmpMax = Math.max(1, ...cmpMonths.flatMap(m => [wByMonth[m]||0, dByMonth[m]||0, uByMonth[m]||0]));
+  const cmpBar = (v, col, name) => `<div class="cmp-bar"><div style="width:${v/cmpMax*100}%;background:${col};"></div>${fmtN(v)} ${name}</div>`;
+
+  // Table
+  const sorted = rows.slice().sort((a,b) => { const av = a[W.sortKey], bv = b[W.sortKey]; return (av < bv ? -1 : av > bv ? 1 : 0) * W.sortDir; });
+  const cols = [['date','Date'],['crewId','Crew ID'],['base','Base'],['rank','Rank'],['employment','Employment'],['discretionThatDay','Discretion that day'],['ulvThatDay','ULV that day'],['activity','Activity'],['reasonCode','Reason'],['estCost','Est. cost']];
+  const arrow = k => W.sortKey === k ? (W.sortDir === 1 ? ' ▲' : ' ▼') : '';
+  const tableRows = sorted.slice(0, ROW_LIMIT).map(r => `<tr>
+    <td>${r.date}</td>
+    <td>${esc(r.crewId)}${perCrew[r.crewId] > 1 ? `<span class="cnt">×${perCrew[r.crewId]}</span>` : ''}</td>
+    <td>${esc(r.base)}</td>
+    <td><span class="badge ${esc(r.rank)}">${esc(r.rank)}</span></td>
+    <td>${esc(r.employment)}${r.ptCapped === 'Capped' ? '<span class="cnt">Capped</span>' : ''}</td>
+    <td class="r">${r.discretionThatDay ? `<button class="cell-btn disc" onclick="wDetail('disc',${ja(r.base)},${ja(r.date)})">${r.discretionThatDay}</button>` : '<span class="zero">0</span>'}</td>
+    <td class="r">${r.ulvThatDay ? `<button class="cell-btn ulv" onclick="wDetail('ulv',${ja(r.base)},${ja(r.date)})">${r.ulvThatDay}</button>` : '<span class="zero">0</span>'}</td>
+    <td><span class="badge ${isRest(r.activity) ? 'rest' : r.activity === 'FLT' ? 'flt' : ''}">${esc(r.activity)}</span></td>
+    <td>${esc(r.reasonCode)} <span style="color:var(--mut);">${esc(r.reasonDesc)}</span></td>
+    <td class="r">£${r.estCost.toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2})}</td></tr>`).join('');
+
+  const repeats = Object.entries(perCrew).filter(([,n]) => n > 1).sort((a,b) => b[1]-a[1]).slice(0, 120);
+  const crewInfo = {}; rows.forEach(r => { const c = crewInfo[r.crewId] = crewInfo[r.crewId] || {rank:r.rank, bases:new Set()}; c.bases.add(r.base); });
+  const ds = D.DISCRETION_SUMMARY, us = D.ULV_SUMMARY;
+
+  el.innerHTML = `
+    <div class="h1">${esc(label)}</div>
+    <div class="sub"><strong>${fmtN(rows.length)}</strong> of ${fmtN(all.length)} WFLY instances match${W.crew ? ` · crew <strong>${esc(W.crew)}</strong> only (<span class="link" onclick="W.crew=null;renderWfly()">clear</span>)` : ''}. Each payment is checked against discretion (FDP extensions) and unpaid leave (ULV) granted at the same base on the same day.</div>
+
+    <div class="kpis">
+      <div class="kpi"><div class="kpi-v" style="color:var(--warn);">${allCost ? fmtGBP(cost) : '—'}</div><div class="kpi-l">${allCost ? `Estimated cost, selection · ${(cost/allCost*100).toFixed(1)}% of all WFLY spend` : 'Estimated cost — set the CP/FO rates in the sidebar'}</div></div>
+      <div class="kpi"><div class="kpi-v">${fmtN(rows.length)}</div><div class="kpi-l">Instances · ${rows.length ? pct(cp, rows.length) : 0}% captains</div></div>
+      <div class="kpi"><div class="kpi-v" style="color:var(--disc);">${fmtN(disc.withAny)}</div><div class="kpi-l">Paid on a day discretion was used at that base · ${fmtGBP(disc.cost)}</div></div>
+      <div class="kpi"><div class="kpi-v" style="color:var(--ulv);">${fmtN(ulv.withAny)}</div><div class="kpi-l">Paid on a day ULV was granted at that base · ${fmtGBP(ulv.cost)}</div></div>
+      <div class="kpi"><div class="kpi-v" style="color:var(--cross);">${fmtN(both.length)}</div><div class="kpi-l">Either discretion or ULV that day · ${fmtGBP(both.reduce((s,r) => s + r.estCost, 0))}</div></div>
+      <div class="kpi"><div class="kpi-v">${fmtN(repeatN)}</div><div class="kpi-l">Crew repeated in selection · ${fmtN(capped)} part-time capped</div></div>
+    </div>
+
+    <div class="box" style="margin-bottom:14px;">
+      <h3>By month — WFLY in selection vs discretion events vs ULV granted (full year)</h3>
+      <div style="display:flex;gap:14px;font-size:9px;color:var(--mut);margin-bottom:8px;">
+        <span class="leg"><span class="leg-dot" style="background:var(--ezy);"></span>WFLY (selection)</span>
+        <span class="leg"><span class="leg-dot" style="background:var(--disc);"></span>Discretion events</span>
+        <span class="leg"><span class="leg-dot" style="background:var(--ulv);"></span>ULV granted</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));column-gap:20px;">
+        ${cmpMonths.map(m => `<div class="cmp-row"><span style="font-size:10px;color:var(--mut);">${fmtMonth(m,{month:'short',year:'2-digit'})}</span>
+          <div class="cmp-bars">${cmpBar(wByMonth[m]||0,'var(--ezy)','wfly')}${cmpBar(dByMonth[m]||0,'var(--disc)','disc')}${cmpBar(uByMonth[m]||0,'var(--ulv)','ulv')}</div></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="row3">
+      <div class="box"><h3>By reason code</h3>${barList(countBy(rows, 'reasonCode').slice(0, 8))}</div>
+      <div class="box"><h3>Instances by base (top 8)</h3>${barList(countBy(rows, 'base').slice(0, 8))}</div>
+      <div class="box"><h3>Estimated cost by base (top 8)</h3>${barList(countBy(rows, 'base', r => r.estCost).slice(0, 8), fmtGBP)}</div>
+    </div>
+
+    <div class="panel ${W.open.disc ? 'open' : ''}" id="p-disc">
+      <div class="panel-head"><div>
+        <h3 style="color:var(--disc);">Discretion (FDP extension) alongside WFLY</h3>
+        <p>${ds ? `${fmtN(ds.fullTotal)} discretion events across all pilots (deduplicated — one flight, one event) · avg extension ${ds.avgExtMinutes} min · base identified for ${pct(ds.attributedTotal, ds.fullTotal)}% via route.` : 'No discretion summary in this export.'}</p>
+        <p class="headline">${fmtN(rows.length)} instances in "${esc(label)}": ${disc.zero}% had zero discretion at that base that day (avg ${disc.avg} events).</p>
+      </div><button class="link" id="t-disc" onclick="wTogglePanel('disc')">${W.open.disc ? 'Less ▴' : 'More ▾'}</button></div>
+      <div class="panel-detail">
+        <div class="row2">
+          <div class="box"><h3>Monthly volume — all pilots</h3>${barList(Object.entries(ds?.byMonth || {}).sort().map(([m,v]) => [fmtMonth(m,{month:'short',year:'2-digit'}), v]))}</div>
+          <div class="box"><h3>By base: discretion events vs WFLY in selection</h3>${ratioTable(ds?.baseTable, 'discretion', 'Discretion', byBase)}
+            <p style="font-size:9px;color:var(--mut);margin-top:8px;">Ratio = WFLY in selection ÷ discretion events. Base attributed from route; where both ends are bases, the departure base.</p></div>
+        </div>
+        <div class="box" style="margin-top:10px;"><h3>Discretion by base, by month (top 12 bases)</h3>${matrixHtml(ds, '#a78bfa')}</div>
+      </div>
+    </div>
+
+    <div class="panel ${W.open.ulv ? 'open' : ''}" id="p-ulv">
+      <div class="panel-head"><div>
+        <h3 style="color:var(--ulv);">Unpaid leave (ULV) granted alongside WFLY</h3>
+        <p>${us ? `${fmtN(us.total)} ULV days granted, CP/FO.` : 'No ULV summary in this export.'} GVA/BSL show high ULV with no WFLY — expected, as WFLY isn't contractually available there.</p>
+        <p class="headline">${fmtN(rows.length)} instances in "${esc(label)}": ${ulv.zero}% had zero ULV granted at that base that day (avg ${ulv.avg} people).</p>
+      </div><button class="link" id="t-ulv" onclick="wTogglePanel('ulv')">${W.open.ulv ? 'Less ▴' : 'More ▾'}</button></div>
+      <div class="panel-detail">
+        <div class="row2">
+          <div class="box"><h3>Monthly volume — CP/FO</h3>${barList(Object.entries(us?.byMonth || {}).sort().map(([m,v]) => [fmtMonth(m,{month:'short',year:'2-digit'}), v]))}</div>
+          <div class="box"><h3>By base: ULV granted vs WFLY in selection</h3>${ratioTable(us?.baseTable, 'ulv', 'ULV', byBase)}
+            <p style="font-size:9px;color:var(--mut);margin-top:8px;">Ratio = WFLY in selection ÷ ULV granted. Use the "ULV that day" column below for the same-day view.</p></div>
+        </div>
+        <div class="box" style="margin-top:10px;"><h3>ULV by base, by month (top 12 bases)</h3>${matrixHtml(us, '#2dd4bf')}</div>
+      </div>
+    </div>
+
+    <div class="panel ${W.open.repeat ? 'open' : ''}" id="p-repeat">
+      <div class="panel-head"><div><h3>Repeat crew in this selection</h3><p>Click a crew ID to filter the table to just their instances.</p></div>
+        <button class="link" id="t-repeat" onclick="wTogglePanel('repeat')">${W.open.repeat ? 'Less ▴' : 'More ▾'}</button></div>
+      <div class="panel-detail"><div class="repeat-grid">
+        ${repeats.map(([id, n]) => `<button class="rc ${W.crew === id ? 'on' : ''}" onclick="W.crew = W.crew === ${ja(id)} ? null : ${ja(id)}; renderWfly();">
+          <div>${esc(id)} <span class="cnt">${n}×</span></div><div class="rc-meta">${esc(crewInfo[id].rank)} · ${esc([...crewInfo[id].bases].join('/'))}</div></button>`).join('') || '<div class="hs-empty">No repeated crew</div>'}
+      </div></div>
+    </div>
+
+    <div class="h2" style="margin-top:6px;">Instances ${rows.length > ROW_LIMIT ? `<span style="font-weight:400;color:var(--mut);font-size:11px;">— showing first ${ROW_LIMIT} of ${fmtN(rows.length)}, export for all</span>` : ''}</div>
+    <div class="table-wrap"><table class="tbl">
+      <thead><tr>${cols.map(([k, l]) => `<th class="sort ${['discretionThatDay','ulvThatDay','estCost'].includes(k) ? 'r' : ''}" onclick="wSort('${k}')">${l}${arrow(k)}</th>`).join('')}</tr></thead>
+      <tbody>${tableRows || `<tr><td colspan="${cols.length}" class="empty">No instances match these filters</td></tr>`}</tbody>
+    </table></div>`;
+}
+function syncRateInputs() { for (const r of ['CP','FO']) $('rate-'+r).value = DATA.settings.rates?.[r] || ''; }
+function saveRates() {
+  const rates = {};
+  for (const r of ['CP','FO']) { const v = parseFloat($('rate-'+r).value); if (v > 0) rates[r] = +v.toFixed(2); }
+  DATA.settings = {...DATA.settings, rates};
+  buildWfly();
+  renderCurrent();
+  if (Cloud.mode === 'cloud') Cloud.save('settings', JSON.stringify(DATA.settings), 'settings.json', 1).then(() => toast('Rates saved for everyone', 'ok'));
+  else toast('Rates applied (this tab only)', 'ok');
+}
+function wSort(k) { if (W.sortKey === k) W.sortDir *= -1; else { W.sortKey = k; W.sortDir = 1; } renderWfly(); }
+
+function wDetail(kind, base, date) {
+  const key = base + '|' + date;
+  if (kind === 'disc') {
+    const flights = DATA.wfly.DISCRETION_DETAIL[key] || [];
+    openDP(`${base} — ${date}`, `Discretion (FDP extension) flights at this base, this day · ${flights.length}`,
+      flights.length ? `<table class="tbl"><tr><th>Flight</th><th>Route</th><th class="r">Ext.</th><th>Crew</th></tr>
+        ${flights.map(f => `<tr><td>${esc(f.flight)}</td><td>${esc(f.dep)}→${esc(f.arr)}</td><td class="r">${f.extMin}m</td><td style="font-size:9px;">${f.crew.map(c => esc(c.name || c.id)).join(', ')}</td></tr>`).join('')}</table>`
+        : '<div class="hs-empty">No flight detail in this export</div>');
+    $('dp-title').style.color = 'var(--disc)';
+  } else {
+    const crew = DATA.wfly.ULV_DETAIL[key] || [];
+    openDP(`${base} — ${date}`, `Crew on approved unpaid leave at this base, this day · ${crew.length}`,
+      crew.length ? `<table class="tbl"><tr><th>Crew ID</th><th>Rank</th></tr>${crew.map(c => `<tr><td>${esc(c.crewId)}</td><td><span class="badge ${esc(c.rank)}">${esc(c.rank)}</span></td></tr>`).join('')}</table>`
+        : '<div class="hs-empty">No crew detail in this export</div>');
+    $('dp-title').style.color = 'var(--ulv)';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Export (context-aware)
+// ═══════════════════════════════════════════════════════════════════════════
+function doExport() {
+  const wb = XLSX.utils.book_new();
+  const add = (data, name, widths) => { const s = XLSX.utils.aoa_to_sheet(data); if (widths) s['!cols'] = widths.map(w => ({wch:w})); XLSX.utils.book_append_sheet(wb, s, name); };
+  const stamp = new Date().toISOString().slice(0,10);
+  if (DATA.ui.section === 'wfly') {
+    if (!DATA.meta.wflyLoaded) return toast('Load the WFLY ($) CSV first', 'err');
+    const rows = wFiltered();
+    add([['Date','Crew ID','Country','Base','Rank','Employment','Contract cap','Discretion that day','ULV that day','Activity','Reason code','Reason','Est. cost (GBP)'],
+      ...rows.map(r => [r.date, r.crewId, r.country, r.base, r.rank, r.employment, r.ptCapped, r.discretionThatDay, r.ulvThatDay, r.activity, r.reasonCode, r.reasonDesc, +r.estCost.toFixed(2)]),
+      ['','','','','','','','','','','','TOTAL', +rows.reduce((s,r) => s + r.estCost, 0).toFixed(2)]], 'WFLY selection', [11,10,10,6,6,12,10,10,8,8,10,26,12]);
+    const byBase = Object.fromEntries(countBy(rows, 'base'));
+    const ratioSheet = (table, key) => (table || []).map(r => [r.base, +r[key] || 0, byBase[r.base] || 0, r[key] ? +((byBase[r.base]||0)/r[key]).toFixed(2) : '']);
+    add([['Base','Discretion events','WFLY (selection)','Ratio'], ...ratioSheet(DATA.wfly.DISCRETION_SUMMARY?.baseTable, 'discretion')], 'Discretion by base', [8,16,16,8]);
+    add([['Base','ULV granted','WFLY (selection)','Ratio'], ...ratioSheet(DATA.wfly.ULV_SUMMARY?.baseTable, 'ulv')], 'ULV by base', [8,12,16,8]);
+    XLSX.writeFile(wb, `EZY_WFLY_${stamp}.xlsx`);
+  } else {
+    if (!DATA.meta.tripsLoaded) return toast('Load a tripping CSV first', 'err');
+    const hs = getHotspots();
+    add([['Base A','AOC A','Base B','AOC B','Overlap days','A→B moves','B→A moves','Total moves','First','Last'],
+      ...hs.map(h => { const d = [...h.dates].sort(); return [h.a, AOC_OF[h.a]||'', h.b, AOC_OF[h.b]||'', h.days, h.ab, h.ba, h.moves, d[0], d[d.length-1]]; })],
+      'Crossings', [8,8,8,8,12,10,10,11,12,12]);
+    const keys = new Set(hs.map(h => h.k));
+    add([['Date','Base A','Base B','A→B','B→A'], ...getCrossings().filter(x => keys.has(x.a+'↔'+x.b)).sort((x,y) => x.date.localeCompare(y.date) || x.a.localeCompare(y.a)).map(x => [x.date, x.a, x.b, x.ab, x.ba])],
+      'Crossings by day', [12,8,8,6,6]);
+    const cols = ['OpsDate','Crew ID','Rank','Crew Base','Trip Base','Duty','Training / Non-Training - Desc','Route Code'];
+    const xKey = new Set(getCrossings().map(x => x.date+'|'+x.a+'|'+x.b));
+    const overlapRecs = DATA.trips.filtered.filter(r => { const a = r['Crew Base'], b = r['Trip Base']; return xKey.has(r._date+'|'+(a<b?a:b)+'|'+(a<b?b:a)); });
+    add([['Date', ...cols], ...overlapRecs.map(r => [r._date, ...cols.map(c => r[c]||'')])], 'Overlap trip records');
+    XLSX.writeFile(wb, `EZY_Tripping_Overlaps_${$('f-month').value}_${stamp}.xlsx`);
+  }
+  toast('Export complete', 'ok');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UI helpers
+// ═══════════════════════════════════════════════════════════════════════════
+function showTooltip(ev, title, rows) {
+  const t = $('tt');
+  $('tt-t').textContent = title;
+  $('tt-b').innerHTML = rows.map(([k,v]) => `<div class="tt-r"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('');
+  t.style.display = 'block';
+  t.style.left = Math.min(ev.clientX + 12, innerWidth - t.offsetWidth - 8) + 'px';
+  t.style.top = Math.min(ev.clientY - 8, innerHeight - t.offsetHeight - 8) + 'px';
+}
+function hideTooltip() { $('tt').style.display = 'none'; }
+function showError(msg) {
+  const safe = /<(br|code)>/.test(msg) ? msg : esc(msg);
+  $('modal-inner').innerHTML = `<h2 style="color:var(--neg);">Cannot load file</h2><p>The file did not match an expected format.</p><div class="schema-err">${safe}</div><div class="modal-acts"><button class="mbtn go" onclick="hideModal()">Close</button></div>`;
+  $('modal-overlay').classList.add('on');
+}
+function hideModal() { $('modal-overlay').classList.remove('on'); }
+function showWelcome() {
+  $('modal-inner').innerHTML = `
+    <h2><span style="color:var(--ezy);">EZY</span> CrewFlow</h2>
+    <p>Load your data to begin. Files are saved to the private shared workspace, so they're here next time — for you and anyone else signed in.</p>
+    <div class="drop" onclick="pickFile('any')"><div class="drop-t">↑ Load files</div><div class="drop-s">Select or drop any of: All tripping CSV · WFLY ($) crewBid CSV · ULV report · Discretion report. Types are detected automatically.</div></div>
+    <div class="modal-acts"><button class="mbtn" onclick="hideModal()">Close</button></div>`;
+  $('modal-overlay').classList.add('on');
+}
+let toastTimer;
+function toast(msg, kind='') {
+  const t = $('toast'); t.className = 'on ' + kind; t.textContent = msg;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), kind === 'err' ? 6000 : 3000);
+}
+let appShown = false;
+function setLoading(msg) { $('load-txt').textContent = msg; $('loading').classList.toggle('soft', appShown); $('loading').style.display = 'flex'; }
+function clearLoading() { $('loading').style.display = 'none'; $('app').style.display = 'grid'; appShown = true; }
+
+let resizeRaf = 0;
+window.addEventListener('resize', () => { cancelAnimationFrame(resizeRaf); resizeRaf = requestAnimationFrame(() => { if (['arc','map'].includes(DATA.ui.view)) renderCurrent(); }); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if ($('modal-overlay').classList.contains('on')) hideModal();
+  else if ($('dp').classList.contains('on')) closeDP(true);
+});
+$('modal-overlay').addEventListener('click', e => { if (e.target.id === 'modal-overlay') hideModal(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') Cloud.checkForUpdates(); });
+window.addEventListener('beforeunload', e => { if (Cloud.state === 'saving') { e.preventDefault(); e.returnValue = ''; } });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Boot — restore preferences, then pull saved datasets from the workspace
+// ═══════════════════════════════════════════════════════════════════════════
+async function boot() {
+  restorePrefs();
+  buildBaseGrid();
+  renderDatasets();
+  setLoading('Connecting to workspace…');
+  const manifest = await Cloud.init();
+  if (manifest?.datasets?.settings) {
+    try { DATA.settings = {rates:{}, ...JSON.parse(await Cloud.fetchText('settings'))}; } catch (e) { console.error(e); }
+  }
+  for (const kind of Object.keys(KINDS)) {
+    const ds = manifest?.datasets?.[kind];
+    if (!ds) continue;
+    try {
+      setLoading(`Loading ${KINDS[kind].label} · ${ds.name}…`);
+      const parsed = KINDS[kind].parse(await Cloud.fetchText(kind));
+      KINDS[kind].set(parsed);
+      DATA.meta.files[kind] = {name: ds.name, records: parsed.length, savedAt: ds.uploadedAt};
+    } catch (e) {
+      console.error(e);
+      toast(`Couldn't load saved ${KINDS[kind].label}: ${e.message}`, 'err');
+    }
+  }
+  if (DATA.meta.tripsLoaded) initMonthSelect();
+  wBuildActs();
+  syncRateInputs();
+  applyFilters();
+  renderDatasets();
+  clearLoading();
+  setSection(DATA.ui.section);
+  if (!DATA.meta.tripsLoaded && !DATA.meta.wflyLoaded) showWelcome();
+}
+boot();
+</script>
+</body>
+</html>
