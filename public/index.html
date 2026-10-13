@@ -267,7 +267,7 @@ svg text{pointer-events:none;user-select:none;}
     <div class="brand"><span class="brand-ezy">EZY</span><span class="brand-cf">CrewFlow</span></div>
     <div class="sections">
       <button class="sec-btn on" data-section="trips" onclick="setSection('trips')">Tripping</button>
-      <button class="sec-btn" data-section="wfly" onclick="setSection('wfly')">WFLY audit</button>
+      <button class="sec-btn" data-section="wfly" onclick="setSection('wfly')">WFLY</button>
     </div>
     <div class="tabs" id="tabs-trips">
       <button class="tab on" data-view="arc" onclick="setView('arc')"><span class="tab-dot" style="color:var(--cross);"></span>Crossings arc</button>
@@ -275,7 +275,7 @@ svg text{pointer-events:none;user-select:none;}
       <button class="tab" data-view="notes" onclick="setView('notes')"><span class="tab-dot" style="color:var(--mut);"></span>Notes</button>
     </div>
     <div class="tabs" id="tabs-wfly" style="display:none;">
-      <button class="tab on" data-view="wfly" onclick="setView('wfly')"><span class="tab-dot" style="color:var(--ezy);"></span>WFLY vs discretion &amp; unpaid leave</button>
+      <button class="tab on" data-view="wfly" onclick="setView('wfly')"><span class="tab-dot" style="color:var(--ezy);"></span>WFLY instances</button>
     </div>
     <div class="actions">
       <button class="sync" id="sync" onclick="Cloud.onStatusClick()"><span class="sync-dot"></span><span id="sync-txt">—</span></button>
@@ -1381,7 +1381,6 @@ function renderNotes() {
 // WFLY audit — vs discretion & unpaid leave
 // ═══════════════════════════════════════════════════════════════════════════
 const W = {acts: new Set(), crew: null, sortKey: 'date', sortDir: 1, open: {disc:true, ulv:true, repeat:false}};
-const ROW_LIMIT = 800;
 const uniq = (rows, k) => [...new Set(rows.map(r => r[k]).filter(Boolean))].sort();
 const isRest = a => a === 'REST' || a === 'D/O';
 
@@ -1442,37 +1441,6 @@ function wSelectionLabel() {
   return 'WFLY — ' + act.sort().join(', ');
 }
 
-function barList(entries, fmtV = fmtN) {
-  if (!entries.length) return '<div class="hs-empty">No data</div>';
-  const max = Math.max(...entries.map(e => e[1]), 1);
-  return entries.map(([k, v]) => `<div class="bar-row"><span>${esc(k)}</span><div class="bar-track"><div class="bar-fill" style="width:${v/max*100}%"></div></div><span class="bar-n">${fmtV(v)}</span></div>`).join('');
-}
-function countBy(rows, key, val = () => 1) {
-  const m = {}; rows.forEach(r => m[r[key]] = (m[r[key]] || 0) + val(r));
-  return Object.entries(m).sort((a,b) => b[1]-a[1]);
-}
-function sameDay(rows, key) {
-  if (!rows.length) return {zero: 0, avg: 0, withAny: 0, cost: 0};
-  const withAny = rows.filter(r => r[key] > 0);
-  return {zero: +(100 - withAny.length/rows.length*100).toFixed(1), avg: +(rows.reduce((s,r) => s + r[key], 0)/rows.length).toFixed(2),
-          withAny: withAny.length, cost: withAny.reduce((s,r) => s + r.estCost, 0)};
-}
-function matrixHtml(sum, colour) {
-  if (!sum?.matrix || !sum.matrixBases) return '<div class="hs-empty">No monthly matrix in this export</div>';
-  const months = sum.matrixMonths, max = Math.max(...sum.matrixBases.flatMap(b => sum.matrix[b] || [0]), 1);
-  return `<div style="overflow-x:auto;"><table class="tbl matrix"><thead><tr><th>Base</th>${months.map(m => `<th>${fmtMonth(m,{month:'short',year:'2-digit'})}</th>`).join('')}</tr></thead><tbody>
-    ${sum.matrixBases.map(b => `<tr><td>${esc(b)}</td>${(sum.matrix[b]||[]).map(v => `<td style="background:${colour}${Math.round(v/max*200).toString(16).padStart(2,'0')};${v/max > 0.55 ? 'color:#0a0b0f;font-weight:600;' : ''}">${v}</td>`).join('')}</tr>`).join('')}
-  </tbody></table></div>`;
-}
-function ratioTable(table, key, label, byBase) {
-  if (!table?.length) return '<div class="hs-empty">No base table in this export</div>';
-  const rows = table.map(r => ({base: r.base, v: +r[key] || 0, wfly: byBase[r.base] || 0}))
-    .map(r => ({...r, ratio: r.v ? r.wfly / r.v : null})).sort((a,b) => b.v - a.v).slice(0, 18);
-  return `<table class="tbl"><thead><tr><th>Base</th><th class="r">${label}</th><th class="r">WFLY (selection)</th><th class="r">Ratio</th></tr></thead><tbody>
-    ${rows.map(r => `<tr><td>${esc(r.base)}</td><td class="r">${fmtN(r.v)}</td><td class="r">${fmtN(r.wfly)}</td><td class="r ${r.ratio !== null && r.ratio >= 0.5 ? 'flag' : ''}">${r.ratio === null ? '—' : r.ratio.toFixed(2)}</td></tr>`).join('')}
-  </tbody></table>`;
-}
-function wTogglePanel(name) { W.open[name] = !W.open[name]; $('p-'+name).classList.toggle('open', W.open[name]); $('t-'+name).textContent = W.open[name] ? 'Less ▴' : 'More ▾'; }
 
 function renderWfly() {
   const el = $('vb-wfly');
@@ -1487,31 +1455,16 @@ function renderWfly() {
       <div class="drop" style="max-width:440px;" onclick="pickFile('any')"><div class="drop-t">↑ Click to load files</div><div class="drop-s">Or drag them anywhere onto the window — several at once is fine</div></div>`;
     return;
   }
-  const D = DATA.wfly, all = D.EVENTS, rows = wFiltered();
-  const allCost = all.reduce((s,r) => s + r.estCost, 0), cost = rows.reduce((s,r) => s + r.estCost, 0);
-  const cp = rows.filter(r => r.rank === 'CP').length;
+  const all = DATA.wfly.EVENTS, rows = wFiltered();
   const perCrew = {}; rows.forEach(r => perCrew[r.crewId] = (perCrew[r.crewId]||0) + 1);
-  const repeatN = Object.values(perCrew).filter(n => n > 1).length;
-  const capped = rows.filter(r => r.ptCapped === 'Capped').length;
-  const disc = sameDay(rows, 'discretionThatDay'), ulv = sameDay(rows, 'ulvThatDay');
-  const both = rows.filter(r => r.discretionThatDay > 0 || r.ulvThatDay > 0);
-  const byBase = Object.fromEntries(countBy(rows, 'base'));
-  const label = wSelectionLabel();
-
-  // Monthly comparison: selection vs full-year discretion & ULV
-  const wByMonth = {}; rows.forEach(r => { const m = r.date.slice(0,7); wByMonth[m] = (wByMonth[m]||0) + 1; });
-  const dByMonth = D.DISCRETION_SUMMARY?.byMonth || {}, uByMonth = D.ULV_SUMMARY?.byMonth || {};
-  const cmpMonths = [...new Set([...Object.keys(wByMonth), ...Object.keys(dByMonth), ...Object.keys(uByMonth)])].sort();
-  const cmpMax = Math.max(1, ...cmpMonths.flatMap(m => [wByMonth[m]||0, dByMonth[m]||0, uByMonth[m]||0]));
-  const cmpBar = (v, col, name) => `<div class="cmp-bar"><div style="width:${v/cmpMax*100}%;background:${col};"></div>${fmtN(v)} ${name}</div>`;
-
-  // Table
+  const cost = rows.reduce((s,r) => s + r.estCost, 0);
+  const withDisc = rows.filter(r => r.discretionThatDay > 0).length, withUlv = rows.filter(r => r.ulvThatDay > 0).length;
   const sorted = rows.slice().sort((a,b) => { const av = a[W.sortKey], bv = b[W.sortKey]; return (av < bv ? -1 : av > bv ? 1 : 0) * W.sortDir; });
   const cols = [['date','Date'],['crewId','Crew ID'],['base','Base'],['rank','Rank'],['employment','Employment'],['discretionThatDay','Discretion that day'],['ulvThatDay','ULV that day'],['activity','Activity'],['reasonCode','Reason'],['estCost','Est. cost']];
   const arrow = k => W.sortKey === k ? (W.sortDir === 1 ? ' ▲' : ' ▼') : '';
-  const tableRows = sorted.slice(0, ROW_LIMIT).map(r => `<tr>
+  const tableRows = sorted.map(r => `<tr>
     <td>${r.date}</td>
-    <td>${esc(r.crewId)}${perCrew[r.crewId] > 1 ? `<span class="cnt">×${perCrew[r.crewId]}</span>` : ''}</td>
+    <td><button class="cell-btn" title="Show only this crew member" onclick="W.crew = W.crew === ${ja(r.crewId)} ? null : ${ja(r.crewId)}; renderWfly();">${esc(r.crewId)}</button>${perCrew[r.crewId] > 1 ? `<span class="cnt">×${perCrew[r.crewId]}</span>` : ''}</td>
     <td>${esc(r.base)}</td>
     <td><span class="badge ${esc(r.rank)}">${esc(r.rank)}</span></td>
     <td>${esc(r.employment)}${r.ptCapped === 'Capped' ? '<span class="cnt">Capped</span>' : ''}</td>
@@ -1519,87 +1472,16 @@ function renderWfly() {
     <td class="r">${r.ulvThatDay ? `<button class="cell-btn ulv" onclick="wDetail('ulv',${ja(r.base)},${ja(r.date)})">${r.ulvThatDay}</button>` : '<span class="zero">0</span>'}</td>
     <td><span class="badge ${isRest(r.activity) ? 'rest' : r.activity === 'FLT' ? 'flt' : ''}">${esc(r.activity)}</span></td>
     <td>${esc(r.reasonCode)} <span style="color:var(--mut);">${esc(r.reasonDesc)}</span></td>
-    <td class="r">£${r.estCost.toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2})}</td></tr>`).join('');
-
-  const repeats = Object.entries(perCrew).filter(([,n]) => n > 1).sort((a,b) => b[1]-a[1]).slice(0, 120);
-  const crewInfo = {}; rows.forEach(r => { const c = crewInfo[r.crewId] = crewInfo[r.crewId] || {rank:r.rank, bases:new Set()}; c.bases.add(r.base); });
-  const ds = D.DISCRETION_SUMMARY, us = D.ULV_SUMMARY;
+    <td class="r">${r.estCost ? '£' + r.estCost.toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2}) : '<span class="zero">—</span>'}</td></tr>`).join('');
 
   el.innerHTML = `
-    <div class="h1">${esc(label)}</div>
-    <div class="sub"><strong>${fmtN(rows.length)}</strong> of ${fmtN(all.length)} WFLY instances match${W.crew ? ` · crew <strong>${esc(W.crew)}</strong> only (<span class="link" onclick="W.crew=null;renderWfly()">clear</span>)` : ''}. Each payment is checked against discretion (FDP extensions) and unpaid leave (ULV) granted at the same base on the same day.</div>
-
-    <div class="kpis">
-      <div class="kpi"><div class="kpi-v" style="color:var(--warn);">${allCost ? fmtGBP(cost) : '—'}</div><div class="kpi-l">${allCost ? `Estimated cost, selection · ${(cost/allCost*100).toFixed(1)}% of all WFLY spend` : 'Estimated cost — set the CP/FO rates in the sidebar'}</div></div>
-      <div class="kpi"><div class="kpi-v">${fmtN(rows.length)}</div><div class="kpi-l">Instances · ${rows.length ? pct(cp, rows.length) : 0}% captains</div></div>
-      <div class="kpi"><div class="kpi-v" style="color:var(--disc);">${fmtN(disc.withAny)}</div><div class="kpi-l">Paid on a day discretion was used at that base · ${fmtGBP(disc.cost)}</div></div>
-      <div class="kpi"><div class="kpi-v" style="color:var(--ulv);">${fmtN(ulv.withAny)}</div><div class="kpi-l">Paid on a day ULV was granted at that base · ${fmtGBP(ulv.cost)}</div></div>
-      <div class="kpi"><div class="kpi-v" style="color:var(--cross);">${fmtN(both.length)}</div><div class="kpi-l">Either discretion or ULV that day · ${fmtGBP(both.reduce((s,r) => s + r.estCost, 0))}</div></div>
-      <div class="kpi"><div class="kpi-v">${fmtN(repeatN)}</div><div class="kpi-l">Crew repeated in selection · ${fmtN(capped)} part-time capped</div></div>
-    </div>
-
-    <div class="box" style="margin-bottom:14px;">
-      <h3>By month — WFLY in selection vs discretion events vs ULV granted (full year)</h3>
-      <div style="display:flex;gap:14px;font-size:9px;color:var(--mut);margin-bottom:8px;">
-        <span class="leg"><span class="leg-dot" style="background:var(--ezy);"></span>WFLY (selection)</span>
-        <span class="leg"><span class="leg-dot" style="background:var(--disc);"></span>Discretion events</span>
-        <span class="leg"><span class="leg-dot" style="background:var(--ulv);"></span>ULV granted</span>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));column-gap:20px;">
-        ${cmpMonths.map(m => `<div class="cmp-row"><span style="font-size:10px;color:var(--mut);">${fmtMonth(m,{month:'short',year:'2-digit'})}</span>
-          <div class="cmp-bars">${cmpBar(wByMonth[m]||0,'var(--ezy)','wfly')}${cmpBar(dByMonth[m]||0,'var(--disc)','disc')}${cmpBar(uByMonth[m]||0,'var(--ulv)','ulv')}</div></div>`).join('')}
-      </div>
-    </div>
-
-    <div class="row3">
-      <div class="box"><h3>By reason code</h3>${barList(countBy(rows, 'reasonCode').slice(0, 8))}</div>
-      <div class="box"><h3>Instances by base (top 8)</h3>${barList(countBy(rows, 'base').slice(0, 8))}</div>
-      <div class="box"><h3>Estimated cost by base (top 8)</h3>${barList(countBy(rows, 'base', r => r.estCost).slice(0, 8), fmtGBP)}</div>
-    </div>
-
-    <div class="panel ${W.open.disc ? 'open' : ''}" id="p-disc">
-      <div class="panel-head"><div>
-        <h3 style="color:var(--disc);">Discretion (FDP extension) alongside WFLY</h3>
-        <p>${ds ? `${fmtN(ds.fullTotal)} discretion events across all pilots (deduplicated — one flight, one event) · avg extension ${ds.avgExtMinutes} min · base identified for ${pct(ds.attributedTotal, ds.fullTotal)}% via route.` : 'No discretion summary in this export.'}</p>
-        <p class="headline">${fmtN(rows.length)} instances in "${esc(label)}": ${disc.zero}% had zero discretion at that base that day (avg ${disc.avg} events).</p>
-      </div><button class="link" id="t-disc" onclick="wTogglePanel('disc')">${W.open.disc ? 'Less ▴' : 'More ▾'}</button></div>
-      <div class="panel-detail">
-        <div class="row2">
-          <div class="box"><h3>Monthly volume — all pilots</h3>${barList(Object.entries(ds?.byMonth || {}).sort().map(([m,v]) => [fmtMonth(m,{month:'short',year:'2-digit'}), v]))}</div>
-          <div class="box"><h3>By base: discretion events vs WFLY in selection</h3>${ratioTable(ds?.baseTable, 'discretion', 'Discretion', byBase)}
-            <p style="font-size:9px;color:var(--mut);margin-top:8px;">Ratio = WFLY in selection ÷ discretion events. Base attributed from route; where both ends are bases, the departure base.</p></div>
-        </div>
-        <div class="box" style="margin-top:10px;"><h3>Discretion by base, by month (top 12 bases)</h3>${matrixHtml(ds, '#a78bfa')}</div>
-      </div>
-    </div>
-
-    <div class="panel ${W.open.ulv ? 'open' : ''}" id="p-ulv">
-      <div class="panel-head"><div>
-        <h3 style="color:var(--ulv);">Unpaid leave (ULV) granted alongside WFLY</h3>
-        <p>${us ? `${fmtN(us.total)} ULV days granted, CP/FO.` : 'No ULV summary in this export.'} GVA/BSL show high ULV with no WFLY — expected, as WFLY isn't contractually available there.</p>
-        <p class="headline">${fmtN(rows.length)} instances in "${esc(label)}": ${ulv.zero}% had zero ULV granted at that base that day (avg ${ulv.avg} people).</p>
-      </div><button class="link" id="t-ulv" onclick="wTogglePanel('ulv')">${W.open.ulv ? 'Less ▴' : 'More ▾'}</button></div>
-      <div class="panel-detail">
-        <div class="row2">
-          <div class="box"><h3>Monthly volume — CP/FO</h3>${barList(Object.entries(us?.byMonth || {}).sort().map(([m,v]) => [fmtMonth(m,{month:'short',year:'2-digit'}), v]))}</div>
-          <div class="box"><h3>By base: ULV granted vs WFLY in selection</h3>${ratioTable(us?.baseTable, 'ulv', 'ULV', byBase)}
-            <p style="font-size:9px;color:var(--mut);margin-top:8px;">Ratio = WFLY in selection ÷ ULV granted. Use the "ULV that day" column below for the same-day view.</p></div>
-        </div>
-        <div class="box" style="margin-top:10px;"><h3>ULV by base, by month (top 12 bases)</h3>${matrixHtml(us, '#2dd4bf')}</div>
-      </div>
-    </div>
-
-    <div class="panel ${W.open.repeat ? 'open' : ''}" id="p-repeat">
-      <div class="panel-head"><div><h3>Repeat crew in this selection</h3><p>Click a crew ID to filter the table to just their instances.</p></div>
-        <button class="link" id="t-repeat" onclick="wTogglePanel('repeat')">${W.open.repeat ? 'Less ▴' : 'More ▾'}</button></div>
-      <div class="panel-detail"><div class="repeat-grid">
-        ${repeats.map(([id, n]) => `<button class="rc ${W.crew === id ? 'on' : ''}" onclick="W.crew = W.crew === ${ja(id)} ? null : ${ja(id)}; renderWfly();">
-          <div>${esc(id)} <span class="cnt">${n}×</span></div><div class="rc-meta">${esc(crewInfo[id].rank)} · ${esc([...crewInfo[id].bases].join('/'))}</div></button>`).join('') || '<div class="hs-empty">No repeated crew</div>'}
-      </div></div>
-    </div>
-
-    <div class="h2" style="margin-top:6px;">Instances ${rows.length > ROW_LIMIT ? `<span style="font-weight:400;color:var(--mut);font-size:11px;">— showing first ${ROW_LIMIT} of ${fmtN(rows.length)}, export for all</span>` : ''}</div>
-    <div class="table-wrap"><table class="tbl">
+    <div class="h1">WFLY instances</div>
+    <div class="sub"><strong>${fmtN(rows.length)}</strong> of ${fmtN(all.length)} shown${cost ? ` · est. ${fmtGBP(cost)}` : ''} ·
+      <span style="color:var(--disc);">${fmtN(withDisc)} with discretion that day</span> ·
+      <span style="color:var(--ulv);">${fmtN(withUlv)} with ULV that day</span>
+      ${W.crew ? ` · crew <strong>${esc(W.crew)}</strong> only (<span class="link" onclick="W.crew=null;renderWfly()">clear</span>)` : ''}<br>
+      Click a column to sort, a crew ID to see just their instances, or a discretion / ULV number for that base and day.</div>
+    <div class="table-wrap" style="max-height:calc(100vh - 170px);"><table class="tbl">
       <thead><tr>${cols.map(([k, l]) => `<th class="sort ${['discretionThatDay','ulvThatDay','estCost'].includes(k) ? 'r' : ''}" onclick="wSort('${k}')">${l}${arrow(k)}</th>`).join('')}</tr></thead>
       <tbody>${tableRows || `<tr><td colspan="${cols.length}" class="empty">No instances match these filters</td></tr>`}</tbody>
     </table></div>`;
@@ -1646,11 +1528,7 @@ function doExport() {
     const rows = wFiltered();
     add([['Date','Crew ID','Country','Base','Rank','Employment','Contract cap','Discretion that day','ULV that day','Activity','Reason code','Reason','Est. cost (GBP)'],
       ...rows.map(r => [r.date, r.crewId, r.country, r.base, r.rank, r.employment, r.ptCapped, r.discretionThatDay, r.ulvThatDay, r.activity, r.reasonCode, r.reasonDesc, +r.estCost.toFixed(2)]),
-      ['','','','','','','','','','','','TOTAL', +rows.reduce((s,r) => s + r.estCost, 0).toFixed(2)]], 'WFLY selection', [11,10,10,6,6,12,10,10,8,8,10,26,12]);
-    const byBase = Object.fromEntries(countBy(rows, 'base'));
-    const ratioSheet = (table, key) => (table || []).map(r => [r.base, +r[key] || 0, byBase[r.base] || 0, r[key] ? +((byBase[r.base]||0)/r[key]).toFixed(2) : '']);
-    add([['Base','Discretion events','WFLY (selection)','Ratio'], ...ratioSheet(DATA.wfly.DISCRETION_SUMMARY?.baseTable, 'discretion')], 'Discretion by base', [8,16,16,8]);
-    add([['Base','ULV granted','WFLY (selection)','Ratio'], ...ratioSheet(DATA.wfly.ULV_SUMMARY?.baseTable, 'ulv')], 'ULV by base', [8,12,16,8]);
+      ['','','','','','','','','','','','TOTAL', +rows.reduce((s,r) => s + r.estCost, 0).toFixed(2)]], 'WFLY instances', [11,10,10,6,6,12,10,10,8,8,10,26,12]);
     XLSX.writeFile(wb, `EZY_WFLY_${stamp}.xlsx`);
   } else {
     if (!DATA.meta.tripsLoaded) return toast('Load a tripping CSV first', 'err');
