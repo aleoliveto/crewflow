@@ -846,7 +846,7 @@ const Cloud = {
       if (!(res.headers.get('content-type') || '').includes('json')) throw new Error('no api');
       this.manifest = await res.json();
       this.mode = 'cloud';
-    } catch { this.mode = 'local'; this.manifest = null; }
+    } catch (e) { this.mode = 'local'; this.manifest = null; this.initError = e.message; console.error('Workspace storage unavailable:', e); }
     this.renderStatus();
     return this.manifest;
   },
@@ -911,7 +911,7 @@ const Cloud = {
   renderStatus() {
     const el = $('sync'), txt = $('sync-txt');
     let state = this.state, label = this.statusText;
-    if (this.mode === 'local') { state = 'local'; label = 'Local only — not saved'; el.title = 'Workspace storage unavailable (not running on Netlify). Data stays in this tab.'; }
+    if (this.mode === 'local') { state = location.protocol.startsWith('http') ? 'error' : 'local'; label = 'Storage unavailable — not saved'; el.title = 'Could not reach the shared workspace' + (this.initError ? ` (${this.initError})` : '') + '. Data stays in this tab only.'; }
     else if (state === 'saving') el.title = 'Uploading to the shared workspace';
     else if (state === 'error') { label = 'Save failed · retry'; el.title = 'Click to retry'; }
     else if (state === 'stale') { label = '↻ New data · reload'; el.title = 'Someone uploaded newer data — click to reload'; }
@@ -1691,7 +1691,9 @@ function hideModal() { $('modal-overlay').classList.remove('on'); }
 function showWelcome() {
   $('modal-inner').innerHTML = `
     <h2><span style="color:var(--ezy);">EZY</span> CrewFlow</h2>
-    <p>Load your data to begin. Files are saved to the private shared workspace, so they're here next time — for you and anyone else signed in.</p>
+    ${Cloud.mode === 'cloud'
+      ? `<p><strong>The shared workspace is empty.</strong> Upload the files once and they're saved for everyone signed in — colleagues won't need to upload anything; it loads automatically for them.</p>`
+      : `<p style="color:var(--neg);"><strong>Can't reach the shared storage</strong>${Cloud.initError ? ' (' + esc(Cloud.initError) + ')' : ''}. You can still explore files, but they'll stay in this tab only and colleagues won't see them.</p>`}
     <div class="drop" onclick="pickFile('any')"><div class="drop-t">↑ Load files</div><div class="drop-s">Select or drop any of: All tripping CSV · WFLY ($) crewBid CSV · ULV report · Discretion report. Types are detected automatically.</div></div>
     <div class="modal-acts"><button class="mbtn" onclick="hideModal()">Close</button></div>`;
   $('modal-overlay').classList.add('on');
