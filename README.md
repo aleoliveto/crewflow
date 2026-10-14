@@ -2,8 +2,10 @@
 
 Password-protected crew analytics for Netlify, with two sections:
 
-- **Tripping — crossings.** Arc and map views of *overlapping* crew movement: on the same day, crew were tripped A→B **and** B→A. Includes a hotspot list, per-day drill-down and Excel export.
-- **WFLY audit.** Each Willing-to-Fly payment (CP/FO) checked against **discretion** (FDP extensions) and **unpaid leave (ULV)** granted at the same base on the same day — monthly comparison, base ratios, base×month heatmaps, repeat crew and a sortable instance table.
+- **Tripping overlaps.** Network and map views of crew tripped A→B **and** B→A on the same day, top crossings, and which department (route-code prefix) booked the overlapping moves.
+- **WFLY.** Every Willing-to-Fly instance (CP/FO) with same-day context at that base: same-rank pilots tripped in/out, discretion (FDP extensions) used and unpaid leave (ULV) granted.
+
+One filter row drives everything: a date-range calendar with presets, bases, rank, department / activity, plus "More filters".
 
 Uploaded files are saved to a private, shared workspace (Netlify Blobs), so they load automatically for anyone signed in, on any device.
 

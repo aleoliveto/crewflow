@@ -11,440 +11,415 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root {
-  /* easyJet palette: orange #FF6600 on white, charcoal text */
-  --bg:#f5f5f5; --s1:#ffffff; --s2:#f4f4f4; --s3:#eaeaea;
-  --b1:#ececec; --b2:#dedede; --b3:#bdbdbd;
-  --txt:#2b2b2b; --mut:#666666; --mut2:#9a9a9a;
-  --ezy:#ff6600; --ezy-dim:#e65c00;
+  /* easyJet palette: orange on white, charcoal ink */
+  --bg:#f6f6f7; --card:#ffffff; --s2:#f3f3f4; --s3:#ebebed;
+  --line:#e7e7ea; --line2:#d6d6db;
+  --ink:#232326; --ink2:#55565c; --ink3:#8c8d93;
+  --brand:#ff6600; --brand-dk:#e05a00; --brand-wash:#fff1e8;
   --uk:#1f6fc5; --eu:#0d8a7d; --ch:#7a5af5;
-  --cross:#c8102e; --disc:#7a5af5; --ulv:#0b8aa6;
-  --pos:#2e8540; --neg:#c8102e; --warn:#d35400;
-  --shadow:0 1px 2px rgba(0,0,0,0.05), 0 1px 4px rgba(0,0,0,0.04);
-  --fh:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
-  --fm:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --cross:#c8102e; --disc:#7a5af5; --ulv:#0b8aa6; --trip:#1f6fc5;
+  --pos:#2e8540; --neg:#c8102e;
+  --shadow:0 1px 2px rgba(20,20,30,0.04), 0 2px 8px rgba(20,20,30,0.04);
+  --pop-shadow:0 12px 32px rgba(20,20,30,0.14), 0 2px 6px rgba(20,20,30,0.06);
+  --r:12px;
+  --f:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--fm);font-size:13px;overflow:hidden;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;}
-button,input,select{font-family:inherit;}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--f);font-size:14px;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;}
+button,input,select{font-family:inherit;font-size:inherit;color:inherit;}
+button{cursor:pointer;}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
 
-/* ── Layout ── */
-#app{display:grid;grid-template-columns:280px 1fr;grid-template-rows:52px 1fr;height:100vh;}
-#topbar{grid-column:1/-1;display:flex;align-items:center;border-bottom:1px solid var(--b1);background:var(--s1);}
-#sidebar{border-right:1px solid var(--b1);background:var(--s1);overflow-y:auto;}
-#main{display:flex;flex-direction:column;overflow:hidden;position:relative;}
+#app{display:flex;flex-direction:column;height:100vh;}
 
-/* ── Topbar ── */
-.brand{display:flex;align-items:center;gap:10px;padding:0 20px;height:100%;border-right:1px solid var(--b1);flex-shrink:0;}
-.brand-ezy{color:var(--ezy);}
-.brand-cf{font-family:var(--fh);font-weight:700;font-size:16px;letter-spacing:-0.01em;white-space:nowrap;}
-.brand-mark{width:22px;height:22px;border-radius:6px;background:var(--ezy);flex-shrink:0;}
-.sections{display:flex;gap:2px;padding:0 10px;border-right:1px solid var(--b1);height:100%;align-items:center;}
-.sec-btn{font-size:13px;font-weight:500;padding:7px 14px;border-radius:6px;border:1px solid transparent;background:none;color:var(--mut);cursor:pointer;white-space:nowrap;}
-.sec-btn:hover{color:var(--txt);background:var(--s2);}
-.sec-btn.on{color:var(--ezy);border-color:rgba(255,102,0,0.4);background:rgba(255,102,0,0.08);}
-.tabs{display:flex;align-items:stretch;flex:1;overflow-x:auto;scrollbar-width:none;height:100%;}
-.tabs::-webkit-scrollbar{display:none;}
-.tab{font-size:12px;padding:0 14px;height:100%;border:none;cursor:pointer;color:var(--mut);background:none;white-space:nowrap;display:flex;align-items:center;gap:6px;border-bottom:2px solid transparent;transition:all 0.15s;}
-.tab:hover{color:var(--txt);background:var(--s2);}
-.tab.on{color:var(--txt);border-bottom-color:var(--ezy);}
-.tab-dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:0.7;}
-.actions{display:flex;align-items:stretch;border-left:1px solid var(--b1);height:100%;}
-.act{font-size:12px;padding:0 14px;height:100%;border:none;cursor:pointer;color:var(--mut);background:none;white-space:nowrap;display:flex;align-items:center;gap:5px;}
-.act:hover{color:var(--txt);background:var(--s2);}
-.act.pos{color:var(--pos);}
-
-.sync{font-size:12px;color:var(--mut);padding:0 14px;display:flex;align-items:center;gap:6px;border:none;background:none;white-space:nowrap;cursor:default;height:100%;}
-.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--mut2);flex-shrink:0;}
+/* ── Header ── */
+header{height:60px;flex-shrink:0;display:flex;align-items:center;gap:28px;padding:0 24px;background:var(--card);border-bottom:1px solid var(--line);}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;letter-spacing:-0.01em;white-space:nowrap;}
+.brand-mark{width:26px;height:26px;border-radius:7px;background:var(--brand);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:700;}
+.nav{display:flex;gap:4px;height:100%;}
+.nav button{border:none;background:none;padding:0 14px;font-weight:500;color:var(--ink2);border-bottom:2px solid transparent;margin-bottom:-1px;}
+.nav button:hover{color:var(--ink);}
+.nav button.on{color:var(--ink);border-bottom-color:var(--brand);font-weight:600;}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.sync{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink2);padding:6px 10px;border-radius:8px;border:none;background:none;}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--ink3);}
 .sync.ok .sync-dot{background:var(--pos);}
-.sync.saving .sync-dot{background:var(--warn);animation:pulse 1s ease-in-out infinite;}
-.sync.error{color:var(--neg);cursor:pointer;}
-.sync.error .sync-dot{background:var(--neg);}
-.sync.stale{color:var(--uk);cursor:pointer;}
-.sync.stale .sync-dot{background:var(--uk);}
-.sync.error:hover,.sync.stale:hover{background:var(--s2);}
+.sync.saving .sync-dot{background:var(--brand);animation:pulse 1s ease-in-out infinite;}
+.sync.error{color:var(--neg);} .sync.error .sync-dot{background:var(--neg);}
+.sync.stale{color:var(--uk);} .sync.stale .sync-dot{background:var(--uk);}
+.sync.error,.sync.stale{cursor:pointer;} .sync.error:hover,.sync.stale:hover{background:var(--s2);}
 @keyframes pulse{50%{opacity:0.3;}}
+.btn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--line2);background:var(--card);font-weight:500;white-space:nowrap;}
+.btn:hover{background:var(--s2);}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;}
+.btn.primary:hover{background:var(--brand-dk);}
+.btn.ghost{border-color:transparent;background:none;color:var(--ink2);}
+.btn.ghost:hover{background:var(--s2);color:var(--ink);}
+.btn.icon{width:36px;padding:0;justify-content:center;}
+.btn svg{width:16px;height:16px;flex-shrink:0;}
 
-/* ── Sidebar ── */
-.sb-sec{padding:12px 14px;border-bottom:1px solid var(--b1);}
-.sb-title{font-size:13px;font-weight:600;color:var(--txt);margin-bottom:10px;}
-.sb-sublabel{font-size:11px;color:var(--mut);margin:8px 0 4px;}
-.ds-row{display:flex;align-items:center;gap:8px;padding:5px 0;}
-.ds-row+.ds-row{border-top:1px solid var(--b1);}
-.ds-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--mut2);}
-.ds-dot.on{background:var(--pos);}
-.ds-dot.local{background:var(--warn);}
-.ds-info{flex:1;min-width:0;}
-.ds-name{font-size:12.5px;}
-.ds-meta{font-size:11px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
-.ds-btn{border:1px solid var(--b1);background:var(--s2);color:var(--mut);font-size:12px;width:22px;height:20px;border-radius:3px;cursor:pointer;flex-shrink:0;}
-.ds-btn:hover{color:var(--txt);border-color:var(--b3);}
-.ds-btn.del:hover{color:var(--neg);border-color:rgba(248,113,113,0.5);}
+/* ── Filter row ── */
+.filters{flex-shrink:0;display:flex;align-items:center;gap:8px;padding:12px 24px;background:var(--card);border-bottom:1px solid var(--line);flex-wrap:wrap;}
+.fbtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--line2);background:var(--card);font-weight:500;white-space:nowrap;max-width:320px;}
+.fbtn:hover{border-color:var(--ink3);}
+.fbtn .k{color:var(--ink3);font-weight:500;}
+.fbtn .v{overflow:hidden;text-overflow:ellipsis;}
+.fbtn.active{border-color:var(--brand);background:var(--brand-wash);}
+.fbtn svg{width:16px;height:16px;color:var(--ink2);flex-shrink:0;}
+.fbtn .chev{width:12px;height:12px;color:var(--ink3);}
+.badge-n{min-width:18px;height:18px;border-radius:9px;background:var(--brand);color:#fff;font-size:11px;font-weight:600;display:inline-grid;place-items:center;padding:0 5px;}
+.fsel{height:36px;padding:0 30px 0 12px;border-radius:8px;border:1px solid var(--line2);background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238c8d93' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;appearance:none;font-weight:500;cursor:pointer;}
+.fsel:hover{border-color:var(--ink3);}
+.fsel.active{border-color:var(--brand);background-color:var(--brand-wash);}
+.f-sep{width:1px;height:22px;background:var(--line);margin:0 4px;}
+.f-reset{margin-left:auto;}
+.fgroup{display:contents;}
 
-.aoc-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
-.aoc-pill{padding:6px 4px;border-radius:4px;border:1px solid var(--b1);background:var(--s2);cursor:pointer;text-align:center;font-size:12px;font-weight:500;color:var(--mut);user-select:none;}
-.aoc-pill:hover{border-color:var(--b3);}
-.aoc-pill.uk.on{background:rgba(91,156,246,0.12);border-color:rgba(91,156,246,0.45);color:var(--uk);}
-.aoc-pill.eu.on{background:rgba(45,212,191,0.12);border-color:rgba(45,212,191,0.45);color:var(--eu);}
-.aoc-pill.ch.on{background:rgba(122,90,245,0.1);border-color:rgba(122,90,245,0.4);color:var(--ch);}
-.inp{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:4px;color:var(--txt);padding:5px 8px;font-size:12px;outline:none;}
-.inp:focus{border-color:var(--b3);}
-.base-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;max-height:110px;overflow-y:auto;margin-top:6px;}
-.base-chip{padding:3px 2px;border-radius:3px;border:1px solid var(--b1);background:var(--s2);cursor:pointer;text-align:center;font-size:11px;color:var(--mut);user-select:none;}
-.base-chip:hover{border-color:var(--b2);color:var(--txt);}
-.base-chip.on{color:var(--txt);}
-.base-chip.on.uk{background:rgba(91,156,246,0.13);border-color:rgba(91,156,246,0.38);}
-.base-chip.on.eu{background:rgba(45,212,191,0.1);border-color:rgba(45,212,191,0.33);}
-.base-chip.on.ch{background:rgba(122,90,245,0.08);border-color:rgba(122,90,245,0.3);}
-.base-acts{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-top:6px;}
-.mini-btn{padding:4px 2px;border-radius:5px;border:1px solid var(--b2);background:var(--s1);color:var(--mut);font-size:12.5px;cursor:pointer;}
-.mini-btn:hover{color:var(--txt);border-color:var(--b2);}
+/* Popovers */
+.pop{position:fixed;z-index:200;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--pop-shadow);display:none;min-width:240px;max-height:calc(100vh - 140px);overflow:auto;}
+.pop.on{display:block;}
+.pop-sec{padding:12px 14px;}
+.pop-sec+.pop-sec{border-top:1px solid var(--line);}
+.pop-title{font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:8px;}
+.preset{display:flex;align-items:center;justify-content:space-between;width:100%;height:36px;padding:0 12px;border:none;background:none;border-radius:8px;text-align:left;}
+.preset:hover{background:var(--s2);}
+.preset.on{font-weight:600;}
+.preset.on::after{content:'';width:16px;height:16px;background:no-repeat center/16px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ff6600' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");}
+.preset small{color:var(--ink3);font-weight:400;margin-left:8px;}
+.date-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.date-row label{font-size:12px;color:var(--ink2);display:flex;flex-direction:column;gap:4px;}
+.inp{height:36px;padding:0 10px;border-radius:8px;border:1px solid var(--line2);background:var(--card);width:100%;}
+.inp:focus{border-color:var(--brand);outline:none;}
+.pop-acts{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;}
+.seg{display:inline-flex;background:var(--s2);border-radius:8px;padding:3px;gap:2px;}
+.seg button{border:none;background:none;height:30px;padding:0 12px;border-radius:6px;font-weight:500;color:var(--ink2);}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,0.08);}
+.chip-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;}
+.chip{height:30px;border-radius:6px;border:1px solid var(--line);background:var(--card);font-size:12.5px;font-weight:500;color:var(--ink3);}
+.chip:hover{border-color:var(--ink3);}
+.chip.on{color:var(--ink);border-color:var(--line2);background:var(--s2);}
+.chip.on.uk{color:var(--uk);background:#eaf2fc;border-color:#c3d9f3;}
+.chip.on.eu{color:var(--eu);background:#e6f5f3;border-color:#b9e0db;}
+.chip.on.ch{color:var(--ch);background:#f0edfe;border-color:#d6ccfc;}
+.quick{display:flex;gap:6px;flex-wrap:wrap;}
+.quick button{height:30px;padding:0 10px;border-radius:6px;border:1px solid var(--line2);background:var(--card);font-size:12.5px;font-weight:500;}
+.quick button:hover{background:var(--s2);}
+.check-row{display:flex;align-items:center;gap:10px;padding:7px 4px;border-radius:6px;cursor:pointer;}
+.check-row:hover{background:var(--s2);}
+.check-row input{accent-color:var(--brand);width:16px;height:16px;}
+.check-row .lbl{flex:1;}
+.check-row .sub{font-size:12px;color:var(--ink3);}
+.check-row .n{color:var(--ink3);font-size:12.5px;}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:7px 0;}
+.toggle-row .sub{font-size:12px;color:var(--ink3);margin-top:1px;}
+.sw{position:relative;width:34px;height:20px;flex-shrink:0;}
+.sw input{opacity:0;width:0;height:0;}
+.sw span{position:absolute;inset:0;background:var(--line2);border-radius:20px;cursor:pointer;transition:.15s;}
+.sw span::before{content:'';position:absolute;left:3px;top:3px;width:14px;height:14px;background:#fff;border-radius:50%;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.2);}
+.sw input:checked+span{background:var(--brand);}
+.sw input:checked+span::before{transform:translateX(14px);}
+.sw input:focus-visible+span{outline:2px solid var(--brand);outline-offset:2px;}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;}
+.field>span{font-size:12px;color:var(--ink2);font-weight:500;}
+.field select{height:36px;border-radius:8px;border:1px solid var(--line2);padding:0 10px;background:var(--card);}
 
-.tog-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;}
-.tog-label{font-size:12.5px;line-height:1.3;}
-.tog-sub{font-size:11px;color:var(--mut);margin-top:1px;}
-.toggle{position:relative;width:28px;height:14px;flex-shrink:0;}
-.toggle input{opacity:0;width:0;height:0;}
-.tog-sl{position:absolute;inset:0;background:var(--s2);border:1px solid var(--b2);border-radius:14px;cursor:pointer;transition:0.18s;}
-.tog-sl:before{content:'';position:absolute;left:2px;top:2px;width:8px;height:8px;background:var(--mut);border-radius:50%;transition:0.18s;}
-.toggle input:checked+.tog-sl{background:var(--ezy);border-color:var(--ezy);}
-.toggle input:checked+.tog-sl:before{transform:translateX(12px);background:#fff;}
-.toggle input:focus-visible+.tog-sl{outline:1px solid var(--ezy);outline-offset:2px;}
-.sel{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:4px;color:var(--txt);padding:5px 8px;font-size:12px;outline:none;cursor:pointer;margin-bottom:6px;}
-.sel:hover{border-color:var(--b3);}
-.reset-btn{width:100%;margin-top:8px;padding:7px;border-radius:6px;border:1px solid var(--b2);background:var(--s1);color:var(--txt);font-size:13px;cursor:pointer;}
-.reset-btn:hover{color:var(--txt);border-color:var(--b2);}
-
-.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
-.stat-card{background:var(--s2);border:1px solid var(--b1);border-radius:5px;padding:8px 10px;;box-shadow:var(--shadow);}
-.stat-val{font-family:var(--fh);font-size:17px;font-weight:700;line-height:1;letter-spacing:-0.02em;}
-.stat-lbl{font-size:11px;color:var(--mut);margin-top:3px;}
-
-.hs-list{display:flex;flex-direction:column;gap:3px;max-height:280px;overflow-y:auto;}
-.hs-item{padding:5px 8px;border-radius:4px;border:1px solid rgba(248,113,113,0.18);background:rgba(248,113,113,0.03);cursor:pointer;}
-.hs-item:hover,.hs-item.on{border-color:var(--cross);background:rgba(248,113,113,0.08);}
-.hs-route{font-size:12.5px;font-weight:500;color:var(--cross);}
-.hs-meta{font-size:11px;color:var(--mut);margin-top:1px;}
-.hs-badge{font-size:11px;color:var(--mut);float:right;}
-.hs-empty{font-size:11px;color:var(--mut2);}
-
-.act-list{display:flex;flex-direction:column;gap:1px;max-height:220px;overflow-y:auto;}
-.act-row{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:4px 6px;border-radius:3px;cursor:pointer;}
-.act-row:hover{background:var(--s2);}
-.act-row input{accent-color:var(--ezy);}
-.act-row .a-label{flex:1;}
-.act-row.rest .a-label{color:var(--warn);}
-.act-row .a-count{color:var(--mut);font-size:12px;}
-.link-row{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;}
-.link{color:var(--ezy);cursor:pointer;background:none;border:none;font-size:12px;padding:0;}
+/* ── Content ── */
+main{flex:1;overflow:auto;padding:20px 24px 32px;}
+.view{display:none;}
+.view.on{display:block;}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:18px;}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);}
+.kpi-l{font-size:13px;color:var(--ink2);font-weight:500;display:flex;align-items:center;gap:7px;}
+.kpi-l i{width:8px;height:8px;border-radius:2px;display:inline-block;}
+.kpi-v{font-size:28px;font-weight:700;letter-spacing:-0.02em;margin-top:6px;line-height:1.1;}
+.kpi-s{font-size:12.5px;color:var(--ink3);margin-top:4px;}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);min-width:0;}
+.card-h{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);}
+.card-h h2{font-size:15px;font-weight:600;}
+.card-h .sub{font-size:12.5px;color:var(--ink3);margin-top:2px;}
+.card-h .right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.card-b{padding:14px 18px;}
+.grid-main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;align-items:start;}
+.side{display:flex;flex-direction:column;gap:14px;}
+.chart-wrap{position:relative;height:clamp(460px, calc(100vh - 340px), 820px);}
+.chart-wrap svg{width:100%;height:100%;display:block;}
+.legend{display:flex;gap:16px;flex-wrap:wrap;padding:10px 18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink2);}
+.leg{display:inline-flex;align-items:center;gap:6px;}
+.leg i{width:10px;height:10px;border-radius:50%;display:inline-block;}
+.leg b{width:16px;height:3px;border-radius:2px;display:inline-block;}
+.link{color:var(--brand-dk);background:none;border:none;font-weight:500;padding:0;}
 .link:hover{text-decoration:underline;}
 
-/* ── Views ── */
-.view{display:none;flex:1;flex-direction:column;overflow:hidden;position:relative;}
-.view.on{display:flex;}
-.view-body{flex:1;overflow-y:auto;padding:18px 22px 40px;}
-.legend{display:flex;gap:14px;align-items:center;padding:7px 16px;border-top:1px solid var(--b1);font-size:11px;color:var(--mut);flex-wrap:wrap;flex-shrink:0;background:var(--s1);}
-.leg{display:flex;align-items:center;gap:5px;}
-.leg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.leg-line{width:16px;height:2px;flex-shrink:0;border-radius:1px;}
-.h1{font-family:var(--fh);font-size:16px;font-weight:600;margin:0 0 4px;letter-spacing:-0.01em;}
-.h2{font-family:var(--fh);font-size:13px;font-weight:600;margin:0 0 10px;}
-.sub{font-size:12.5px;color:var(--mut);margin-bottom:16px;line-height:1.55;max-width:900px;}
-.sub strong{color:var(--txt);font-weight:500;}
-.empty{color:var(--mut);padding:24px;text-align:center;font-size:12.5px;}
-.drop{border:1px dashed var(--b2);border-radius:7px;padding:26px;cursor:pointer;text-align:center;}
-.drop:hover{border-color:var(--ezy);background:rgba(255,102,0,0.03);}
-.drop-t{color:var(--mut);font-size:12.5px;}
-.drop-s{color:var(--mut2);font-size:11px;margin-top:4px;}
+.list{display:flex;flex-direction:column;}
+.li{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 18px;border-bottom:1px solid var(--line);cursor:pointer;text-align:left;background:none;border-left:3px solid transparent;width:100%;border-top:none;border-right:none;}
+.li:last-child{border-bottom:none;}
+.li:hover{background:var(--s2);}
+.li.on{background:var(--brand-wash);border-left-color:var(--brand);}
+.li-t{font-weight:600;}
+.li-s{font-size:12.5px;color:var(--ink3);grid-column:1;}
+.li-v{font-weight:600;text-align:right;}
+.li-vs{font-size:12px;color:var(--ink3);text-align:right;}
+.scroll-list{max-height:330px;overflow:auto;}
+.bars{display:flex;flex-direction:column;gap:9px;}
+.bar{display:grid;grid-template-columns:130px 1fr 56px;align-items:center;gap:10px;font-size:13px;background:none;border:none;text-align:left;padding:3px 4px;border-radius:6px;}
+.bar:hover{background:var(--s2);}
+.bar.on{background:var(--brand-wash);}
+.bar.dim{opacity:0.45;}
+.bar-t{height:10px;border-radius:0 4px 4px 0;background:var(--s3);overflow:hidden;}
+.bar-f{height:100%;background:var(--brand);border-radius:0 4px 4px 0;}
+.bar-n{text-align:right;color:var(--ink2);font-weight:500;}
+.empty{padding:40px 20px;text-align:center;color:var(--ink3);}
+.empty-big{padding:70px 20px;text-align:center;}
+.empty-big h3{font-size:17px;margin-bottom:6px;}
+.empty-big p{color:var(--ink2);margin-bottom:18px;line-height:1.5;}
 
-/* WFLY */
-.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:16px;}
-.kpi{background:var(--s1);border:1px solid var(--b2);border-radius:6px;padding:11px 12px;;box-shadow:var(--shadow);}
-.kpi-v{font-family:var(--fh);font-size:19px;font-weight:700;line-height:1.1;letter-spacing:-0.02em;}
-.kpi-l{font-size:11px;color:var(--mut);margin-top:4px;line-height:1.35;}
-.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
-.row2{display:grid;grid-template-columns:1fr 1.3fr;gap:10px;}
-.box{background:var(--s1);border:1px solid var(--b2);border-radius:7px;padding:12px 14px;min-width:0;;box-shadow:var(--shadow);}
-.box h3{font-family:var(--fh);font-size:13px;font-weight:600;color:var(--mut);margin-bottom:10px;}
-.bar-row{display:grid;grid-template-columns:62px 1fr 74px;align-items:center;gap:8px;margin-bottom:5px;font-size:12px;}
-.bar-track{background:var(--s2);height:11px;border-radius:2px;overflow:hidden;}
-.bar-fill{height:100%;background:var(--ezy);}
-.bar-n{text-align:right;color:var(--mut);}
-.panel{background:var(--s1);border:1px solid var(--b2);border-radius:7px;padding:14px 16px;margin-bottom:14px;;box-shadow:var(--shadow);}
-.panel-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;}
-.panel-head h3{font-family:var(--fh);font-size:14px;font-weight:600;margin-bottom:4px;}
-.panel-head p{font-size:12.5px;color:var(--mut);line-height:1.5;max-width:780px;}
-.panel-head .headline{color:var(--warn);margin-top:6px;}
-.panel-detail{display:none;margin-top:14px;}
-.panel.open .panel-detail{display:block;}
-.tbl{width:100%;border-collapse:collapse;font-size:12px;}
-.tbl th{font-size:11px;color:var(--mut);text-align:left;padding:6px 8px;border-bottom:1px solid var(--b2);font-weight:500;white-space:nowrap;background:var(--s1);}
+/* Table */
+.tbl-wrap{overflow:auto;max-height:calc(100vh - 330px);}
+table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;}
+.tbl th{position:sticky;top:0;z-index:1;background:var(--card);text-align:left;font-size:12px;font-weight:600;color:var(--ink2);padding:10px 12px;border-bottom:1px solid var(--line2);white-space:nowrap;cursor:pointer;user-select:none;}
+.tbl th:hover{color:var(--ink);}
 .tbl th.r,.tbl td.r{text-align:right;}
-.tbl td{padding:5px 8px;border-bottom:1px solid var(--b1);vertical-align:middle;}
-.tbl tbody tr:hover td{background:var(--s2);}
-.tbl th.sort{cursor:pointer;position:sticky;top:0;z-index:1;}
-.tbl th.sort:hover{color:var(--txt);}
-.matrix td,.matrix th{text-align:center;padding:5px 4px;font-size:12px;}
-.matrix td:first-child,.matrix th:first-child{text-align:left;position:sticky;left:0;background:var(--s1);}
-.flag{color:var(--warn);font-weight:600;}
-.badge{display:inline-block;font-size:11px;padding:1px 6px;border-radius:3px;background:var(--s2);color:var(--mut);}
-.badge.CP{background:rgba(255,102,0,0.12);color:#c45200;}
-.badge.FO{background:rgba(91,156,246,0.15);color:var(--uk);}
-.badge.rest{background:rgba(200,16,46,0.08);color:var(--cross);}
-.badge.flt{background:rgba(52,211,153,0.12);color:var(--pos);}
-.cnt{font-size:11px;font-weight:600;color:var(--warn);background:rgba(251,146,60,0.12);border-radius:8px;padding:0 5px;margin-left:5px;}
-.cell-btn{background:none;border:none;color:var(--txt);cursor:pointer;font-size:12.5px;padding:0;font-weight:500;}
-.cell-btn:hover{text-decoration:underline;color:var(--ezy);}
-.cell-btn.disc,.cell-btn.ulv{text-decoration:underline;}
-.cell-btn.disc{color:var(--disc);}
-.cell-btn.ulv{color:var(--ulv);}
-.zero{color:var(--mut2);}
-.repeat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;}
-.rc{border:1px solid var(--b2);border-radius:5px;padding:8px 10px;cursor:pointer;background:var(--s1);text-align:left;color:var(--txt);}
-.rc:hover,.rc.on{border-color:var(--ezy);background:rgba(255,102,0,0.06);}
-.rc-meta{font-size:11px;color:var(--mut);margin-top:2px;}
-.cmp-row{display:grid;grid-template-columns:54px 1fr;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--b1);}
-.cmp-bars{display:flex;flex-direction:column;gap:2px;}
-.cmp-bar{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mut);}
-.cmp-bar div{height:6px;border-radius:2px;min-width:1px;}
-.table-wrap{max-height:70vh;overflow:auto;border:1px solid var(--b2);border-radius:7px;;box-shadow:var(--shadow);}
+.tbl td{padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap;}
+.tbl tbody tr:hover td{background:#fafafa;}
+.tag{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 7px;border-radius:5px;background:var(--s2);color:var(--ink2);}
+.tag.CP{background:var(--brand-wash);color:#b84a00;}
+.tag.FO{background:#eaf2fc;color:var(--uk);}
+.tag.rest{background:#fdecee;color:var(--cross);}
+.tag.flt{background:#eaf5ec;color:var(--pos);}
+.mult{font-size:11px;font-weight:600;color:var(--ink3);margin-left:6px;}
+.capped{font-size:11px;color:#b84a00;margin-left:6px;font-weight:500;}
+.num-btn{min-width:28px;height:24px;border-radius:6px;border:none;font-weight:600;padding:0 7px;}
+.num-btn.disc{background:#f0edfe;color:var(--disc);}
+.num-btn.ulv{background:#e5f4f7;color:var(--ulv);}
+.num-btn.trip{background:#eaf2fc;color:var(--trip);}
+.num-btn:hover{filter:brightness(0.95);}
+.zero{color:var(--line2);}
+.crew-btn{border:none;background:none;font-weight:500;padding:0;}
+.crew-btn:hover{color:var(--brand-dk);text-decoration:underline;}
 
-/* Detail panel */
-#dp{position:absolute;bottom:38px;right:14px;width:340px;background:var(--s1);border:1px solid var(--b2);border-radius:7px;padding:13px;display:none;z-index:50;max-height:60vh;overflow-y:auto;;box-shadow:var(--shadow);}
-#dp.on{display:block;}
-.dp-title{font-family:var(--fh);font-size:13px;font-weight:600;margin-bottom:6px;color:var(--cross);}
-.dp-close{float:right;cursor:pointer;color:var(--mut);font-size:14px;background:none;border:none;}
-.dp-close:hover{color:var(--txt);}
-.dp-sub{font-size:11px;color:var(--mut);margin-bottom:8px;}
+/* Detail drawer */
+#dp{position:fixed;top:0;right:0;bottom:0;width:400px;max-width:92vw;background:var(--card);border-left:1px solid var(--line);box-shadow:var(--pop-shadow);z-index:150;transform:translateX(100%);transition:transform .18s ease;display:flex;flex-direction:column;}
+#dp.on{transform:none;}
+.dp-h{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start;}
+.dp-h h3{font-size:16px;font-weight:600;}
+.dp-h .sub{font-size:12.5px;color:var(--ink3);margin-top:3px;}
+.dp-b{padding:16px 20px;overflow:auto;flex:1;}
+.dp-b h4{font-size:12.5px;color:var(--ink2);font-weight:600;margin:16px 0 8px;}
+.dp-b h4:first-child{margin-top:0;}
+.mini{width:100%;border-collapse:collapse;font-size:13px;}
+.mini th{text-align:left;font-size:12px;color:var(--ink3);font-weight:500;padding:6px 8px 6px 0;border-bottom:1px solid var(--line);}
+.mini td{padding:7px 8px 7px 0;border-bottom:1px solid var(--line);}
+.mini .r{text-align:right;}
 
-/* Modals */
-#modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.35);display:none;align-items:center;justify-content:center;z-index:300;backdrop-filter:blur(6px);}
+/* Modal */
+#modal-overlay{position:fixed;inset:0;background:rgba(20,20,30,0.32);display:none;align-items:center;justify-content:center;z-index:300;}
 #modal-overlay.on{display:flex;}
-.modal{background:var(--s1);border:1px solid var(--b2);border-radius:10px;padding:24px;width:460px;max-width:92vw;max-height:88vh;overflow-y:auto;;box-shadow:var(--shadow);}
-.modal h2{font-family:var(--fh);font-size:17px;font-weight:600;margin-bottom:5px;}
-.modal p{font-size:12.5px;color:var(--mut);margin-bottom:14px;line-height:1.5;}
-.modal-acts{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;}
-.mbtn{font-size:12.5px;padding:7px 16px;border-radius:5px;cursor:pointer;border:1px solid var(--b2);background:none;color:var(--mut);}
-.mbtn:hover{color:var(--txt);}
-.mbtn.go{background:var(--ezy);color:#fff;border-color:var(--ezy);font-weight:500;}
-.mbtn.go:hover{background:var(--ezy-dim);}
-.mbtn.danger{border-color:rgba(248,113,113,0.5);color:var(--neg);}
-.schema-err{background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.3);border-radius:5px;padding:10px 12px;font-size:12px;color:var(--neg);line-height:1.5;word-break:break-word;}
-.schema-err code{background:var(--s2);padding:1px 5px;border-radius:2px;}
-#dropzone{position:fixed;inset:0;z-index:350;display:none;align-items:center;justify-content:center;background:rgba(244,246,249,0.88);pointer-events:none;}
+.modal{background:var(--card);border-radius:16px;padding:26px;width:520px;max-width:92vw;max-height:88vh;overflow:auto;box-shadow:var(--pop-shadow);}
+.modal h2{font-size:19px;margin-bottom:6px;}
+.modal p{color:var(--ink2);line-height:1.55;margin-bottom:14px;}
+.modal-acts{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;}
+.drop{border:1.5px dashed var(--line2);border-radius:12px;padding:28px;text-align:center;cursor:pointer;background:var(--s2);}
+.drop:hover{border-color:var(--brand);background:var(--brand-wash);}
+.drop b{display:block;margin-bottom:4px;}
+.drop span{font-size:12.5px;color:var(--ink2);}
+.schema-err{background:#fdecee;border-radius:8px;padding:12px;color:var(--neg);font-size:13px;line-height:1.5;word-break:break-word;}
+.schema-err code{background:#fff;padding:1px 5px;border-radius:4px;}
+.ds-row{display:flex;align-items:center;gap:10px;padding:10px 0;}
+.ds-row+.ds-row{border-top:1px solid var(--line);}
+.ds-dot{width:8px;height:8px;border-radius:50%;background:var(--line2);flex-shrink:0;}
+.ds-dot.on{background:var(--pos);} .ds-dot.local{background:var(--brand);}
+.ds-info{flex:1;min-width:0;}
+.ds-name{font-weight:600;}
+.ds-meta{font-size:12.5px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ds-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--line2);background:var(--card);color:var(--ink2);}
+.ds-btn:hover{background:var(--s2);}
+.ds-btn.del:hover{color:var(--neg);}
+.notes h3{font-size:14px;margin:16px 0 6px;}
+.notes h3:first-child{margin-top:0;}
+.notes p{font-size:13.5px;color:var(--ink2);line-height:1.6;margin:0 0 6px;}
+
+#dropzone{position:fixed;inset:0;z-index:350;display:none;align-items:center;justify-content:center;background:rgba(255,255,255,0.88);pointer-events:none;}
 #dropzone.on{display:flex;}
-#dropzone div{border:2px dashed var(--ezy);border-radius:14px;padding:48px 64px;text-align:center;font-family:var(--fh);font-size:18px;color:var(--ezy);}
-#dropzone small{display:block;font-family:var(--fm);font-size:12px;color:var(--mut);margin-top:8px;}
-#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--s1);border:1px solid var(--b2);border-radius:6px;padding:10px 16px;font-size:12.5px;z-index:400;display:none;box-shadow:0 8px 24px rgba(16,24,40,0.12);max-width:80vw;}
+#dropzone div{border:2px dashed var(--brand);border-radius:16px;padding:48px 64px;text-align:center;font-size:20px;font-weight:600;color:var(--brand-dk);background:var(--card);}
+#dropzone small{display:block;font-size:13px;color:var(--ink2);font-weight:400;margin-top:8px;}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:10px;padding:11px 16px;font-size:13.5px;z-index:400;display:none;box-shadow:var(--pop-shadow);max-width:80vw;}
 #toast.on{display:block;}
-#toast.err{border-color:rgba(248,113,113,0.4);}
-#toast.ok{border-color:rgba(52,211,153,0.4);}
-#tt{position:fixed;background:var(--s1);border:1px solid var(--b2);border-radius:5px;padding:7px 11px;font-size:12px;pointer-events:none;display:none;z-index:999;max-width:230px;box-shadow:0 8px 24px rgba(16,24,40,0.12);}
-.tt-t{font-family:var(--fh);font-size:12.5px;font-weight:600;margin-bottom:3px;}
-.tt-r{display:flex;justify-content:space-between;gap:12px;color:var(--mut);}
-.tt-r span:last-child{color:var(--txt);}
-#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:14px;}
-#loading.soft{background:rgba(244,246,249,0.85);backdrop-filter:blur(3px);}
-.load-brand{font-family:var(--fh);font-size:24px;font-weight:700;}
-.load-bar{width:180px;height:2px;background:var(--s2);border-radius:1px;overflow:hidden;}
-.load-fill{height:100%;background:var(--ezy);animation:ld 1.4s ease-in-out infinite;}
+#toast.err{background:var(--neg);}
+#tt{position:fixed;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;pointer-events:none;display:none;z-index:999;min-width:180px;max-width:280px;box-shadow:var(--pop-shadow);}
+.tt-t{font-weight:600;margin-bottom:6px;}
+.tt-r{display:flex;justify-content:space-between;gap:16px;color:var(--ink2);line-height:1.6;}
+.tt-r span:last-child{color:var(--ink);font-weight:600;}
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:16px;}
+#loading.soft{background:rgba(246,246,247,0.85);}
+.load-brand{font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px;}
+.load-bar{width:200px;height:3px;background:var(--s3);border-radius:2px;overflow:hidden;}
+.load-fill{height:100%;background:var(--brand);animation:ld 1.4s ease-in-out infinite;}
 @keyframes ld{0%{width:0%;}50%{width:70%;}100%{width:100%;}}
-.load-txt{font-size:12px;color:var(--mut);}
-::-webkit-scrollbar{width:4px;height:4px;}
-::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
+.load-txt{font-size:13px;color:var(--ink2);}
 svg text{pointer-events:none;user-select:none;}
-.method-sec{background:var(--s1);border:1px solid var(--b1);border-radius:6px;padding:14px 18px;margin-bottom:12px;}
-.method-metric{font-family:var(--fh);font-size:13px;font-weight:600;margin-bottom:6px;}
-.method-def{font-size:12.5px;line-height:1.6;margin-bottom:8px;}
-.method-caveat{font-size:12px;color:var(--mut);line-height:1.55;font-style:italic;background:var(--s2);padding:8px 12px;border-radius:4px;border-left:2px solid var(--ezy);}
-@media (max-width:1300px){.kpis{grid-template-columns:repeat(3,1fr);}.row3,.row2{grid-template-columns:1fr;}}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:4px;}
+@media (max-width:1100px){.grid-main{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
 
 <div id="loading">
-  <div class="load-brand">Paul Monitoring Dashboard</div>
+  <div class="load-brand"><span class="brand-mark">P</span>Paul Monitoring Dashboard</div>
   <div class="load-bar"><div class="load-fill"></div></div>
   <div class="load-txt" id="load-txt">Initialising…</div>
 </div>
 
 <div id="app" style="display:none;">
-  <div id="topbar">
-    <div class="brand"><span class="brand-mark"></span><span class="brand-cf">Paul Monitoring <span class="brand-ezy">Dashboard</span></span></div>
-    <div class="sections">
-      <button class="sec-btn on" data-section="trips" onclick="setSection('trips')">Tripping</button>
-      <button class="sec-btn" data-section="wfly" onclick="setSection('wfly')">WFLY</button>
-    </div>
-    <div class="tabs" id="tabs-trips">
-      <button class="tab on" data-view="arc" onclick="setView('arc')"><span class="tab-dot" style="color:var(--cross);"></span>Crossings arc</button>
-      <button class="tab" data-view="map" onclick="setView('map')"><span class="tab-dot" style="color:var(--eu);"></span>Crossings map</button>
-      <button class="tab" data-view="notes" onclick="setView('notes')"><span class="tab-dot" style="color:var(--mut);"></span>Notes</button>
-    </div>
-    <div class="tabs" id="tabs-wfly" style="display:none;">
-      <button class="tab on" data-view="wfly" onclick="setView('wfly')"><span class="tab-dot" style="color:var(--ezy);"></span>WFLY instances</button>
-    </div>
-    <div class="actions">
+  <header>
+    <div class="brand"><span class="brand-mark">P</span>Paul Monitoring Dashboard</div>
+    <nav class="nav">
+      <button data-section="trips" onclick="setSection('trips')">Tripping overlaps</button>
+      <button data-section="wfly" onclick="setSection('wfly')">WFLY</button>
+    </nav>
+    <div class="hdr-right">
       <button class="sync" id="sync" onclick="Cloud.onStatusClick()"><span class="sync-dot"></span><span id="sync-txt">—</span></button>
-      <button class="act" onclick="pickFile('any')" title="Load one or more files — the type is detected automatically">↑ Load files</button>
-      <button class="act pos" onclick="doExport()">↓ Export</button>
-      <button class="act" onclick="location.href='/api/logout'" title="Sign out">⏻</button>
+      <button class="btn" onclick="openData()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/></svg>Data</button>
+      <button class="btn" onclick="doExport()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>Export</button>
+      <button class="btn ghost icon" onclick="showNotes()" title="How to read this"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></button>
+      <button class="btn ghost icon" onclick="location.href='/api/logout'" title="Sign out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg></button>
     </div>
-    <input type="file" id="file-trips" accept=".csv,.tsv,.txt" style="display:none;" onchange="onFilePicked(this,'trips')">
-    <input type="file" id="file-wfly" accept=".csv,.tsv,.txt" style="display:none;" onchange="onFilePicked(this,'wfly')">
-    <input type="file" id="file-ulv" accept=".csv,.txt" style="display:none;" onchange="onFilePicked(this,'ulv')">
-    <input type="file" id="file-disc" accept=".csv,.txt" style="display:none;" onchange="onFilePicked(this,'disc')">
-    <input type="file" id="file-any" accept=".csv,.tsv,.txt" multiple style="display:none;" onchange="onFilesPicked(this)">
+  </header>
+
+  <div class="filters" id="filters">
+    <button class="fbtn" id="fb-date" onclick="togglePop('pop-date', this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="v" id="fb-date-v">All dates</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></button>
+    <button class="fbtn" id="fb-bases" onclick="togglePop('pop-bases', this)"><span class="k">Bases</span><span class="v" id="fb-bases-v">All</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></button>
+    <select class="fsel" id="f-rank" onchange="refreshAll()" title="Rank">
+      <option value="all">All ranks</option><option value="pilots">Pilots (CP + FO)</option><option value="cabin">Cabin crew</option><option value="CP">Captains (CP)</option><option value="FO">First Officers (FO)</option>
+    </select>
+    <span class="fgroup" id="fg-trips">
+      <select class="fsel" id="f-dept" onchange="refreshAll()" title="Department that booked the trip"><option value="all">All departments</option></select>
+      <button class="fbtn" id="fb-more" onclick="togglePop('pop-more', this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>More filters <span class="badge-n" id="more-n" style="display:none;"></span></button>
+    </span>
+    <span class="fgroup" id="fg-wfly" style="display:none;">
+      <button class="fbtn" id="fb-acts" onclick="togglePop('pop-acts', this)"><span class="k">Activity</span><span class="v" id="fb-acts-v">All</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></button>
+      <select class="fsel" id="w-cover" onchange="renderWfly()" title="What else happened at that base that day">
+        <option value="">Any same-day context</option>
+        <option value="tripin">Same-rank pilot tripped in</option>
+        <option value="tripboth">Tripped in and out</option>
+        <option value="disc">Discretion used</option>
+        <option value="ulv">ULV granted</option>
+        <option value="any">Any of the above</option>
+        <option value="none">None of the above</option>
+      </select>
+      <button class="fbtn" id="fb-wmore" onclick="togglePop('pop-wmore', this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>More filters <span class="badge-n" id="wmore-n" style="display:none;"></span></button>
+    </span>
+    <button class="btn ghost f-reset" onclick="resetFilters()">Reset</button>
   </div>
 
-  <div id="sidebar">
-    <div class="sb-sec">
-      <div class="sb-title">Datasets</div>
-      <div id="ds-list"></div>
+  <!-- Popovers -->
+  <div class="pop" id="pop-date" style="width:320px;">
+    <div class="pop-sec" id="date-presets"></div>
+    <div class="pop-sec">
+      <div class="pop-title">Custom range</div>
+      <div class="date-row">
+        <label>From<input class="inp" type="date" id="d-from"></label>
+        <label>To<input class="inp" type="date" id="d-to"></label>
+      </div>
+      <div class="pop-acts"><button class="btn" onclick="closePops()">Cancel</button><button class="btn primary" onclick="applyCustomRange()">Apply</button></div>
     </div>
-
-    <!-- Tripping filters -->
-    <div id="sb-trips">
-      <div class="sb-sec">
-        <div class="sb-title">AOC / bases</div>
-        <div class="aoc-row">
-          <div class="aoc-pill uk on" id="aoc-UK" onclick="toggleAoc('UK')">UK</div>
-          <div class="aoc-pill eu on" id="aoc-Europe" onclick="toggleAoc('Europe')">EU</div>
-          <div class="aoc-pill ch on" id="aoc-Swiss" onclick="toggleAoc('Swiss')">CH</div>
-        </div>
-        <input class="inp" id="base-search" placeholder="Search bases…" oninput="filterBaseChips(this.value)" style="margin-top:8px;">
-        <div class="base-grid" id="base-grid"></div>
-        <div class="base-acts">
-          <button class="mini-btn" onclick="setBases('all')">All</button>
-          <button class="mini-btn" onclick="setBases('none')">None</button>
-          <button class="mini-btn" onclick="setBases('UK')">UK</button>
-          <button class="mini-btn" onclick="setBases('Europe')">EU</button>
-          <button class="mini-btn" onclick="setBases('Swiss')">CH</button>
-        </div>
-      </div>
-      <div class="sb-sec">
-        <div class="sb-title">Exclude</div>
-        <div class="tog-row"><div><div class="tog-label">NCL Pipeline</div><div class="tog-sub">NCL→LGW FO training</div></div>
-          <label class="toggle"><input type="checkbox" id="f-ncl" checked onchange="applyFilters()"><span class="tog-sl"></span></label></div>
-        <div class="tog-row"><div><div class="tog-label">Egypt Standby</div><div class="tog-sub">SSH/HRG hotel standby</div></div>
-          <label class="toggle"><input type="checkbox" id="f-eg" checked onchange="applyFilters()"><span class="tog-sl"></span></label></div>
-        <div class="tog-row"><div><div class="tog-label">Cape Verde</div><div class="tog-sub">SID scheduled</div></div>
-          <label class="toggle"><input type="checkbox" id="f-cv" checked onchange="applyFilters()"><span class="tog-sl"></span></label></div>
-        <div class="tog-row"><div><div class="tog-label">Training Flights</div><div class="tog-sub">All training duties</div></div>
-          <label class="toggle"><input type="checkbox" id="f-tr" onchange="applyFilters()"><span class="tog-sl"></span></label></div>
-      </div>
-      <div class="sb-sec">
-        <div class="sb-title">Scope</div>
-        <div class="sb-sublabel">Rank</div>
-        <select class="sel" id="f-rank" onchange="applyFilters()">
-          <option value="all">All ranks</option><option value="pilots">Pilots (CP + FO)</option><option value="cabin">Cabin crew</option><option value="CP">CP only</option><option value="FO">FO only</option>
-        </select>
-        <div class="sb-sublabel">Month</div>
-        <select class="sel" id="f-month" onchange="applyFilters()"><option value="all">All months</option></select>
-        <div class="sb-sublabel">Flow direction</div>
-        <select class="sel" id="f-dir" onchange="applyFilters()">
-          <option value="all">All movements</option><option value="intra">Intra-AOC only</option><option value="inter">Inter-AOC only</option>
-        </select>
-        <div class="sb-sublabel">Min crossing days <span id="min-val" style="color:var(--txt);">3</span></div>
-        <input type="range" id="f-min" min="1" max="30" value="3" oninput="$('min-val').textContent=this.value;applyFilters()" style="accent-color:var(--ezy);width:100%;">
-        <div class="tog-row" style="margin-top:6px;"><div><div class="tog-label">Show background flows</div><div class="tog-sub">Non-overlapping movement, faded</div></div>
-          <label class="toggle"><input type="checkbox" id="f-bg" onchange="applyFilters()"><span class="tog-sl"></span></label></div>
-        <button class="reset-btn" onclick="resetFilters()">Reset filters</button>
-      </div>
-      <div class="sb-sec">
-        <div class="sb-title">Overview</div>
-        <div class="stat-grid">
-          <div class="stat-card"><div class="stat-val" id="s-tot">—</div><div class="stat-lbl">trips</div></div>
-          <div class="stat-card"><div class="stat-val" id="s-xing" style="color:var(--cross);">—</div><div class="stat-lbl">crossing pairs</div></div>
-          <div class="stat-card"><div class="stat-val" id="s-moves" style="color:var(--cross);">—</div><div class="stat-lbl">overlap moves</div></div>
-        </div>
-      </div>
-      <div class="sb-sec">
-        <div class="sb-title" style="color:var(--cross);">Crossing hotspots</div>
-        <div class="hs-list" id="hs-cross"></div>
+  </div>
+  <div class="pop" id="pop-bases" style="width:360px;">
+    <div class="pop-sec">
+      <div class="quick">
+        <button onclick="setBases('all')">All</button><button onclick="setBases('none')">None</button>
+        <button onclick="setBases('UK')">UK</button><button onclick="setBases('Europe')">Europe</button><button onclick="setBases('Swiss')">Swiss</button>
       </div>
     </div>
-
-    <!-- WFLY filters -->
-    <div id="sb-wfly" style="display:none;">
-      <div class="sb-sec">
-        <div class="sb-title">Activity recorded that day</div>
-        <div class="act-list" id="w-acts"></div>
-        <div class="link-row">
-          <button class="link" onclick="wSelectActs(['REST','D/O'])">Rest/day-off only</button>
-          <button class="link" onclick="wSelectActs('all')">All</button>
-          <button class="link" onclick="wSelectActs([])">Clear</button>
-        </div>
-      </div>
-      <div class="sb-sec">
-        <div class="sb-title">Location &amp; time</div>
-        <select class="sel" id="w-country" onchange="wCountryChanged()"><option value="">All countries</option></select>
-        <select class="sel" id="w-base" onchange="renderWfly()"><option value="">All bases</option></select>
-        <select class="sel" id="w-month" onchange="renderWfly()"><option value="">All months</option></select>
-      </div>
-      <div class="sb-sec">
-        <div class="sb-title">Crew</div>
-        <select class="sel" id="w-rank" onchange="renderWfly()"><option value="">All ranks</option></select>
-        <select class="sel" id="w-emp" onchange="renderWfly()"><option value="">All employment types</option></select>
-        <select class="sel" id="w-cap" onchange="renderWfly()"><option value="">All contract caps</option></select>
-        <select class="sel" id="w-reason" onchange="renderWfly()"><option value="">All reasons</option></select>
-        <input class="inp" id="w-search" placeholder="Search crew ID…" oninput="W.crew=null;renderWfly()">
-      </div>
-      <div class="sb-sec">
-        <div class="sb-title">Same-day cover available</div>
-        <select class="sel" id="w-cover" onchange="renderWfly()">
-          <option value="">Any</option>
-          <option value="disc">Discretion used that day</option>
-          <option value="ulv">ULV granted that day</option>
-          <option value="either">Discretion or ULV that day</option>
-          <option value="none">Neither that day</option>
-        </select>
-        <button class="reset-btn" onclick="wReset()">Reset filters</button>
-      </div>
-      <div class="sb-sec">
-        <div class="sb-title">Estimated cost per WFLY</div>
-        <div class="tog-sub" style="margin-bottom:6px;">Shared with everyone signed in. Stored in the workspace, never in the code.</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-          <label style="font-size:11px;color:var(--mut);">CP £<input class="inp" id="rate-CP" type="number" min="0" step="0.01" placeholder="0.00"></label>
-          <label style="font-size:11px;color:var(--mut);">FO £<input class="inp" id="rate-FO" type="number" min="0" step="0.01" placeholder="0.00"></label>
-        </div>
-        <button class="reset-btn" onclick="saveRates()">Save rates</button>
-      </div>
+    <div class="pop-sec"><input class="inp" id="base-search" placeholder="Search bases…" oninput="filterBaseChips(this.value)" style="margin-bottom:10px;"><div class="chip-grid" id="base-grid"></div></div>
+  </div>
+  <div class="pop" id="pop-more" style="width:340px;">
+    <div class="pop-sec">
+      <div class="pop-title">Exclude known patterns</div>
+      <div class="toggle-row"><div>NCL pipeline<div class="sub">NCL→LGW FO training</div></div><label class="sw"><input type="checkbox" id="f-ncl" checked onchange="refreshAll()"><span></span></label></div>
+      <div class="toggle-row"><div>Egypt standby<div class="sub">SSH / HRG hotel standby</div></div><label class="sw"><input type="checkbox" id="f-eg" checked onchange="refreshAll()"><span></span></label></div>
+      <div class="toggle-row"><div>Cape Verde<div class="sub">SID scheduled</div></div><label class="sw"><input type="checkbox" id="f-cv" checked onchange="refreshAll()"><span></span></label></div>
+      <div class="toggle-row"><div>Training flights<div class="sub">All training duties</div></div><label class="sw"><input type="checkbox" id="f-tr" onchange="refreshAll()"><span></span></label></div>
+    </div>
+    <div class="pop-sec">
+      <div class="field"><span>Movement</span><select id="f-dir" onchange="refreshAll()"><option value="all">All movements</option><option value="intra">Within the same AOC</option><option value="inter">Between AOCs</option></select></div>
+      <div class="field" style="margin-bottom:4px;"><span>Show pairs that overlapped on at least <b id="min-val">3</b> days</span>
+        <input type="range" id="f-min" min="1" max="30" value="3" oninput="$('min-val').textContent=this.value;refreshAll()" style="accent-color:var(--brand);"></div>
+      <div class="toggle-row"><div>Background flows<div class="sub">Non-overlapping movement, faded</div></div><label class="sw"><input type="checkbox" id="f-bg" onchange="refreshAll()"><span></span></label></div>
+    </div>
+  </div>
+  <div class="pop" id="pop-acts" style="width:280px;">
+    <div class="pop-sec"><div class="quick"><button onclick="wSelectActs('all')">All</button><button onclick="wSelectActs(['REST','D/O'])">Rest / day off</button><button onclick="wSelectActs([])">None</button></div></div>
+    <div class="pop-sec" id="w-acts"></div>
+  </div>
+  <div class="pop" id="pop-wmore" style="width:320px;">
+    <div class="pop-sec">
+      <div class="field"><span>Employment</span><select id="w-emp" onchange="renderWfly()"><option value="">All</option></select></div>
+      <div class="field"><span>Contract cap</span><select id="w-cap" onchange="renderWfly()"><option value="">All</option></select></div>
+      <div class="field"><span>Reason code</span><select id="w-reason" onchange="renderWfly()"><option value="">All</option></select></div>
+      <div class="field" style="margin-bottom:0;"><span>Crew ID</span><input class="inp" id="w-search" placeholder="Search crew ID…" oninput="W.crew=null;renderWfly()"></div>
     </div>
   </div>
 
-  <div id="main">
-    <div id="view-arc" class="view on">
-      <svg id="cv-arc" style="flex:1;width:100%;"></svg>
-      <div class="legend">
-        <span class="leg"><span class="leg-dot" style="background:var(--uk);"></span>UK</span>
-        <span class="leg"><span class="leg-dot" style="background:var(--eu);"></span>Europe</span>
-        <span class="leg"><span class="leg-dot" style="background:var(--ch);"></span>Swiss</span>
-        <span class="leg"><span class="leg-line" style="background:var(--cross);"></span>Crossing (A→B and B→A same day)</span>
-        <span style="color:var(--mut2);">Thickness = overlapping moves · click an arc or hotspot for dates</span>
+  <main>
+    <!-- Tripping -->
+    <section class="view" id="view-trips">
+      <div class="kpis" id="t-kpis"></div>
+      <div class="grid-main">
+        <div class="card">
+          <div class="card-h">
+            <div><h2>Overlapping crew movement</h2><div class="sub" id="chart-sub">Crew tripped A→B and B→A on the same day</div></div>
+            <div class="right"><div class="seg"><button data-view="arc" class="on" onclick="setView('arc')">Network</button><button data-view="map" onclick="setView('map')">Map</button></div></div>
+          </div>
+          <div class="chart-wrap"><svg id="cv"></svg></div>
+          <div class="legend">
+            <span class="leg"><b style="background:var(--cross);"></b>Crossing (thicker = more moves)</span>
+            <span class="leg"><i style="background:var(--uk);"></i>UK</span>
+            <span class="leg"><i style="background:var(--eu);"></i>Europe</span>
+            <span class="leg"><i style="background:var(--ch);"></i>Swiss</span>
+            <span style="color:var(--ink3);margin-left:auto;">Click a line or a row for dates</span>
+          </div>
+        </div>
+        <div class="side">
+          <div class="card">
+            <div class="card-h"><div><h2>Top crossings</h2><div class="sub" id="hs-sub">By overlap days</div></div></div>
+            <div class="list scroll-list" id="hs-list"></div>
+          </div>
+          <div class="card">
+            <div class="card-h"><div><h2>Who booked the overlaps</h2><div class="sub">Overlapping moves by department · click to filter</div></div></div>
+            <div class="card-b"><div class="bars" id="dept-bars"></div></div>
+          </div>
+        </div>
       </div>
-    </div>
-    <div id="view-map" class="view">
-      <svg id="cv-map" style="flex:1;width:100%;"></svg>
-      <div class="legend">
-        <span class="leg"><span class="leg-dot" style="background:var(--uk);"></span>UK</span>
-        <span class="leg"><span class="leg-dot" style="background:var(--eu);"></span>Europe</span>
-        <span class="leg"><span class="leg-dot" style="background:var(--ch);"></span>Swiss</span>
-        <span class="leg"><span class="leg-line" style="background:var(--cross);"></span>Crossing route</span>
-      </div>
-    </div>
-    <div id="view-notes" class="view"><div class="view-body" id="vb-notes"></div></div>
-    <div id="view-wfly" class="view"><div class="view-body" id="vb-wfly"></div></div>
+    </section>
 
-    <div id="dp">
-      <button class="dp-close" onclick="closeDP(true)" aria-label="Close">✕</button>
-      <div class="dp-title" id="dp-title"></div>
-      <div class="dp-sub" id="dp-sub"></div>
-      <div id="dp-body"></div>
-    </div>
-  </div>
+    <!-- WFLY -->
+    <section class="view" id="view-wfly">
+      <div class="kpis" id="w-kpis"></div>
+      <div class="card">
+        <div class="card-h">
+          <div><h2>WFLY instances</h2><div class="sub" id="w-sub"></div></div>
+          <div class="right" id="w-crew-chip"></div>
+        </div>
+        <div class="tbl-wrap" id="w-table"></div>
+      </div>
+    </section>
+  </main>
 </div>
 
+<aside id="dp" aria-hidden="true">
+  <div class="dp-h"><div style="flex:1;"><h3 id="dp-title"></h3><div class="sub" id="dp-sub"></div></div><button class="btn ghost icon" onclick="closeDP(true)" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+  <div class="dp-b" id="dp-body"></div>
+</aside>
+
+<input type="file" id="file-trips" accept=".csv,.tsv,.txt" style="display:none;" onchange="onFilePicked(this,'trips')">
+<input type="file" id="file-wfly" accept=".csv,.tsv,.txt" style="display:none;" onchange="onFilePicked(this,'wfly')">
+<input type="file" id="file-ulv" accept=".csv,.txt" style="display:none;" onchange="onFilePicked(this,'ulv')">
+<input type="file" id="file-disc" accept=".csv,.txt" style="display:none;" onchange="onFilePicked(this,'disc')">
+<input type="file" id="file-any" accept=".csv,.tsv,.txt" multiple style="display:none;" onchange="onFilesPicked(this)">
+
 <div id="modal-overlay"><div class="modal" id="modal-inner"></div></div>
-<div id="dropzone"><div>Drop file to load<small>Tripping, WFLY ($), ULV and discretion reports are detected automatically — drop several at once</small></div></div>
+<div id="dropzone"><div>Drop files to load<small>Tripping, WFLY ($), ULV and discretion reports are detected automatically</small></div></div>
 <div id="toast"></div>
 <div id="tt"><div class="tt-t" id="tt-t"></div><div id="tt-b"></div></div>
 
@@ -461,6 +436,10 @@ const ALL_BASES = [...BASES.UK, ...BASES.Europe, ...BASES.Swiss];
 const ALL_BASE_SET = new Set(ALL_BASES);
 const AOC_OF = {}; Object.entries(BASES).forEach(([aoc, bs]) => bs.forEach(b => AOC_OF[b] = aoc));
 const TRAINING_TRIPS = new Set(['Training Flight','Training + Non-Training Flight']);
+// Department that booked a trip = first two letters of the route code
+const DEPTS = {CR:'Crewing', RD:'Roster Delivery', RP:'Roster Planning', TP:'Training Planning', TD:'Training Delivery', CT:'Crewing Training'};
+const deptOf = routeCode => { const p = (routeCode || '').trim().slice(0,2).toUpperCase(); return !p ? 'NONE' : DEPTS[p] ? p : 'OTHER'; };
+const deptName = d => DEPTS[d] || (d === 'NONE' ? 'No route code' : 'Other route codes');
 
 const AP = {
   LGW:{n:'London Gatwick',lat:51.148,lon:-0.190},LTN:{n:'London Luton',lat:51.874,lon:-0.368},
@@ -509,7 +488,7 @@ const DATA = {
   src: {wfly:null, ulv:null, disc:null},   // parsed raw WFLY / ULV / discretion rows
   wfly: null,                              // joined view model built by buildWfly()
   settings: {rates:{}},                    // shared settings (cost per WFLY by rank) — kept in the workspace, not in code
-  ui: {section:'trips', view:'arc', bases:new Set(ALL_BASES), selection:null, pendingMonth:null},
+  ui: {section:'trips', view:'arc', bases:new Set(ALL_BASES), selection:null, range:{preset:'all', from:null, to:null}},
   meta: {tripsLoaded:false, wflyLoaded:false, files:{}}
 };
 let MEMO = new Map();
@@ -623,6 +602,7 @@ function parseTrips(text) {
     rec._month = date.slice(0,7);
     rec._crewAoc = AOC_OF[rec['Crew Base']] || 'Other';
     rec._tripAoc = AOC_OF[rec['Trip Base']] || 'Other';
+    rec._dept = deptOf(rec['Route Code']);
     records.push(rec);
   }
   if (!records.length) throw new Error('No valid records found. Check that OpsDate, Crew Base and Trip Base are populated.');
@@ -777,10 +757,19 @@ function buildWfly() {
     ulvByBase[u.base] = (ulvByBase[u.base]||0) + 1;
   }
 
+  // Tripping: same-rank pilots tripped into / out of the WFLY base on the same day
+  const tripIn = {}, tripOut = {};
+  for (const r of DATA.trips.raw) {
+    if (!PILOT_RANKS.has(r['Rank']) || r['Crew Base'] === r['Trip Base']) continue;
+    (tripIn[r['Trip Base']+'|'+r._date+'|'+r['Rank']] ||= []).push(r);
+    (tripOut[r['Crew Base']+'|'+r._date+'|'+r['Rank']] ||= []).push(r);
+  }
   const EVENTS = S.wfly.map(e => ({...e,
     estCost: +rates[e.rank] || 0,
     discretionThatDay: (discIdx[e.base+'|'+e.date] || []).length,
-    ulvThatDay: (ulvIdx[e.base+'|'+e.date] || []).length}));
+    ulvThatDay: (ulvIdx[e.base+'|'+e.date] || []).length,
+    trippedIn: (tripIn[e.base+'|'+e.date+'|'+e.rank] || []).length,
+    trippedOut: (tripOut[e.base+'|'+e.date+'|'+e.rank] || []).length}));
 
   const matrix = (items, byBase) => {
     const months = [...new Set(items.map(x => x.date.slice(0,7)))].sort();
@@ -793,6 +782,7 @@ function buildWfly() {
   DATA.wfly = {
     EVENTS,
     DISCRETION_DETAIL: discIdx,
+    TRIP_IN: tripIn, TRIP_OUT: tripOut, hasTrips: DATA.trips.raw.length > 0,
     ULV_DETAIL: ulvIdx,
     DISCRETION_SUMMARY: S.disc ? {
       fullTotal: discList.length, attributedTotal: attributed.length,
@@ -817,7 +807,7 @@ function detectKind(text) {
 }
 
 const KINDS = {
-  trips: {label:'Tripping',   parse:parseTrips, set:recs => { DATA.trips.raw = recs || []; DATA.meta.tripsLoaded = !!(recs && recs.length); }},
+  trips: {label:'Tripping',   parse:parseTrips, set:recs => { DATA.trips.raw = recs || []; DATA.meta.tripsLoaded = !!(recs && recs.length); if (DATA.src.wfly) buildWfly(); }},
   wfly:  {label:'WFLY ($)',   parse:parseWfly,  set:recs => { DATA.src.wfly = recs; buildWfly(); wInitFilters(); }},
   ulv:   {label:'ULV',        parse:parseUlv,   set:recs => { DATA.src.ulv = recs; buildWfly(); }},
   disc:  {label:'Discretion', parse:parseDisc,  set:recs => { DATA.src.disc = recs; buildWfly(); }},
@@ -946,7 +936,7 @@ async function loadFile(file, forcedKind) {
     const n = parsed.length;
     DATA.meta.files[kind] = {name: file.name, records: n, savedAt: null};
     afterDataChange(kind);
-    hideModal();
+    if (!$('ds-list')) hideModal();
     setSection(kind === 'trips' ? 'trips' : 'wfly');
     toast(`Loaded ${fmtN(n)} ${KINDS[kind].label} rows from ${file.name}`, 'ok');
     Cloud.save(kind, text, file.name, n);
@@ -959,8 +949,9 @@ async function loadFile(file, forcedKind) {
 }
 
 function afterDataChange(kind) {
-  if (kind === 'trips') { initMonthSelect(); applyFilters(); }
-  else { if (kind === 'wfly' && !DATA.src.wfly) wInitFilters(); renderCurrent(); }
+  if (kind === 'wfly' && !DATA.src.wfly) wInitFilters();
+  if (kind === 'trips') initDeptSelect();
+  refreshAll();
   renderDatasets();
 }
 
@@ -984,6 +975,7 @@ async function confirmClear(kind) {
 }
 
 function renderDatasets() {
+  if (!$('ds-list')) return;
   $('ds-list').innerHTML = Object.entries(KINDS).map(([kind, k]) => {
     const f = DATA.meta.files[kind];
     if (!f) return `<div class="ds-row"><span class="ds-dot"></span>
@@ -1011,52 +1003,52 @@ window.addEventListener('drop', async e => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Sections & views
+// Sections, views & popovers
 // ═══════════════════════════════════════════════════════════════════════════
-const SECTION_VIEWS = {trips: ['arc','map','notes'], wfly: ['wfly']};
-const lastView = {trips: 'arc', wfly: 'wfly'};
-
 function setSection(section) {
   DATA.ui.section = section;
-  document.querySelectorAll('.sec-btn').forEach(b => b.classList.toggle('on', b.dataset.section === section));
-  $('tabs-trips').style.display = section === 'trips' ? '' : 'none';
-  $('tabs-wfly').style.display = section === 'wfly' ? '' : 'none';
-  $('sb-trips').style.display = section === 'trips' ? '' : 'none';
-  $('sb-wfly').style.display = section === 'wfly' ? '' : 'none';
-  setView(lastView[section]);
-}
-
-function setView(view) {
-  const section = SECTION_VIEWS.wfly.includes(view) ? 'wfly' : 'trips';
-  DATA.ui.view = view;
-  lastView[section] = view;
-  document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'view-'+view));
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.view === view));
-  closeDP();
+  document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('on', b.dataset.section === section));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'view-' + section));
+  $('fg-trips').style.display = section === 'trips' ? '' : 'none';
+  $('fg-wfly').style.display = section === 'wfly' ? '' : 'none';
+  closePops(); closeDP();
   savePrefs();
-  renderCurrent();
+  refreshAll();
+}
+function setView(view) {
+  DATA.ui.view = view;
+  document.querySelectorAll('.seg button[data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === view));
+  savePrefs();
+  renderChart();
 }
 
-function renderCurrent() {
-  hideTooltip();
-  switch (DATA.ui.view) {
-    case 'arc': renderArc(); break;
-    case 'map': renderMap(); break;
-    case 'notes': renderNotes(); break;
-    case 'wfly': renderWfly(); break;
-  }
+let openPop = null;
+function togglePop(id, anchor) {
+  const pop = $(id);
+  if (openPop === pop) return closePops();
+  closePops();
+  if (id === 'pop-date') renderDatePresets();
+  pop.classList.add('on');
+  const r = anchor.getBoundingClientRect();
+  pop.style.top = (r.bottom + 6) + 'px';
+  pop.style.left = Math.max(8, Math.min(r.left, innerWidth - pop.offsetWidth - 8)) + 'px';
+  openPop = pop;
 }
+function closePops() { document.querySelectorAll('.pop.on').forEach(p => p.classList.remove('on')); openPop = null; }
+document.addEventListener('mousedown', e => {
+  if (openPop && !openPop.contains(e.target) && !e.target.closest('.fbtn')) closePops();
+});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Preferences (per browser)
 // ═══════════════════════════════════════════════════════════════════════════
-const PREFS_KEY = 'paul-dashboard.prefs.v1';
+const PREFS_KEY = 'paul-dashboard.prefs.v2';
 function savePrefs() {
   try {
     localStorage.setItem(PREFS_KEY, JSON.stringify({
-      section: DATA.ui.section, view: lastView.trips, rank: $('f-rank').value, month: $('f-month').value, dir: $('f-dir').value,
-      min: $('f-min').value, bg: $('f-bg').checked, ncl: $('f-ncl').checked, eg: $('f-eg').checked, cv: $('f-cv').checked,
-      tr: $('f-tr').checked, bases: [...DATA.ui.bases]
+      section: DATA.ui.section, view: DATA.ui.view, range: DATA.ui.range, rank: $('f-rank').value, dept: $('f-dept').value,
+      dir: $('f-dir').value, min: $('f-min').value, bg: $('f-bg').checked, ncl: $('f-ncl').checked, eg: $('f-eg').checked,
+      cv: $('f-cv').checked, tr: $('f-tr').checked, bases: [...DATA.ui.bases]
     }));
   } catch {}
 }
@@ -1064,89 +1056,171 @@ function restorePrefs() {
   let p = null;
   try { p = JSON.parse(localStorage.getItem(PREFS_KEY) || 'null'); } catch {}
   if (!p) return;
-  if (['all','pilots','cabin','CP','FO'].includes(p.rank)) $('f-rank').value = p.rank;
+  if ([...$('f-rank').options].some(o => o.value === p.rank)) $('f-rank').value = p.rank;
   if (['all','intra','inter'].includes(p.dir)) $('f-dir').value = p.dir;
   if (+p.min >= 1 && +p.min <= 30) { $('f-min').value = p.min; $('min-val').textContent = p.min; }
   for (const k of ['ncl','eg','cv','tr','bg']) if (typeof p[k] === 'boolean') $('f-'+k).checked = p[k];
   if (Array.isArray(p.bases)) DATA.ui.bases = new Set(p.bases.filter(b => ALL_BASE_SET.has(b)));
-  if (p.month) DATA.ui.pendingMonth = p.month;
-  if (SECTION_VIEWS.trips.includes(p.view)) lastView.trips = p.view;
+  if (p.range && typeof p.range === 'object') DATA.ui.range = {preset: p.range.preset || 'all', from: p.range.from || null, to: p.range.to || null};
+  if (['arc','map'].includes(p.view)) DATA.ui.view = p.view;
   if (p.section === 'wfly' || p.section === 'trips') DATA.ui.section = p.section;
+  DATA.ui.pendingDept = p.dept;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Tripping — filters
+// Date range (shared by both sections)
 // ═══════════════════════════════════════════════════════════════════════════
-function applyFilters() {
+const isoDay = d => d.toISOString().slice(0,10);
+const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return isoDay(d); };
+const fmtDay = iso => new Date(iso + 'T00:00:00Z').toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric', timeZone:'UTC'});
+function dataBounds() {
+  let min = null, max = null;
+  const take = d => { if (!d) return; if (!min || d < min) min = d; if (!max || d > max) max = d; };
+  if (DATA.ui.section === 'wfly' && DATA.wfly) DATA.wfly.EVENTS.forEach(e => take(e.date));
+  else DATA.trips.raw.forEach(r => take(r._date));
+  if (!max && DATA.wfly) DATA.wfly.EVENTS.forEach(e => take(e.date));
+  return {min, max};
+}
+// Presets are relative to the latest date in the data (the exports are historical)
+function presetRange(key) {
+  const {min, max} = dataBounds();
+  if (!max) return {from: null, to: null};
+  const [y, m] = max.split('-').map(Number);
+  switch (key) {
+    case 'last7': return {from: addDays(max, -6), to: max};
+    case 'last30': return {from: addDays(max, -29), to: max};
+    case 'last90': return {from: addDays(max, -89), to: max};
+    case 'month': return {from: `${y}-${pad2(m)}-01`, to: max};
+    case 'prevmonth': { const pm = m === 1 ? 12 : m - 1, py = m === 1 ? y - 1 : y; return {from: `${py}-${pad2(pm)}-01`, to: addDays(`${y}-${pad2(m)}-01`, -1)}; }
+    case 'summer': return {from: `${m >= 6 ? y : y - 1}-06-01`, to: `${m >= 6 ? y : y - 1}-08-31`};
+    case 'ytd': return {from: `${y}-01-01`, to: max};
+    default: return {from: null, to: null};
+  }
+}
+const PRESETS = [['all','All dates'],['last7','Last 7 days'],['last30','Last 30 days'],['last90','Last 90 days'],['month','Latest month'],['prevmonth','Previous month'],['summer','Summer (Jun–Aug)'],['ytd','Year to date']];
+function currentRange() { const r = DATA.ui.range; return r.preset === 'custom' ? {from: r.from, to: r.to} : presetRange(r.preset); }
+const inRange = (d, rg) => (!rg.from || d >= rg.from) && (!rg.to || d <= rg.to);
+function rangeLabel() {
+  const r = DATA.ui.range, rg = currentRange();
+  if (r.preset === 'all' || (!rg.from && !rg.to)) return 'All dates';
+  const span = `${fmtDay(rg.from)} – ${fmtDay(rg.to)}`;
+  return r.preset === 'custom' ? span : `${PRESETS.find(p => p[0] === r.preset)[1]} · ${span}`;
+}
+function renderDatePresets() {
+  const {min, max} = dataBounds();
+  $('date-presets').innerHTML = PRESETS.map(([k, l]) => `<button class="preset ${DATA.ui.range.preset === k ? 'on' : ''}" onclick="setPreset('${k}')">${l}</button>`).join('') +
+    (max ? `<div style="font-size:12px;color:var(--ink3);padding:8px 12px 0;">Data covers ${fmtDay(min)} – ${fmtDay(max)}</div>` : '');
+  const rg = currentRange();
+  for (const [id, v] of [['d-from', rg.from || min], ['d-to', rg.to || max]]) { $(id).value = v || ''; $(id).min = min || ''; $(id).max = max || ''; }
+}
+function setPreset(k) { DATA.ui.range = {preset: k, from: null, to: null}; closePops(); refreshAll(); }
+function applyCustomRange() {
+  let f = $('d-from').value || null, t = $('d-to').value || null;
+  if (f && t && f > t) [f, t] = [t, f];
+  DATA.ui.range = {preset: 'custom', from: f, to: t};
+  closePops(); refreshAll();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Bases
+// ═══════════════════════════════════════════════════════════════════════════
+function buildBaseGrid() {
+  $('base-grid').innerHTML = ALL_BASES.map(b =>
+    `<button class="chip ${aocCls(b)}" id="bc-${b}" onclick="toggleBase('${b}')" title="${esc(apName(b))}">${b}</button>`).join('');
+  syncChips();
+}
+function syncChips() {
+  document.querySelectorAll('.chip[id^="bc-"]').forEach(el => el.classList.toggle('on', DATA.ui.bases.has(el.id.slice(3))));
+}
+function basesLabel() {
+  const n = DATA.ui.bases.size;
+  if (n === ALL_BASES.length) return 'All';
+  if (!n) return 'None';
+  for (const aoc of Object.keys(BASES)) if (n === BASES[aoc].length && BASES[aoc].every(b => DATA.ui.bases.has(b))) return aoc;
+  return n <= 3 ? [...DATA.ui.bases].join(', ') : `${n} selected`;
+}
+function toggleBase(b) { DATA.ui.bases.has(b) ? DATA.ui.bases.delete(b) : DATA.ui.bases.add(b); syncChips(); refreshAll(); }
+function setBases(mode) {
+  DATA.ui.bases = mode === 'all' ? new Set(ALL_BASES) : mode === 'none' ? new Set() : new Set(BASES[mode]);
+  syncChips(); refreshAll();
+}
+function filterBaseChips(q) {
+  const lq = q.toLowerCase();
+  document.querySelectorAll('.chip[id^="bc-"]').forEach(c => {
+    const code = c.id.slice(3);
+    c.style.display = (code.toLowerCase().includes(lq) || apName(code).toLowerCase().includes(lq)) ? '' : 'none';
+  });
+}
+function initDeptSelect() {
+  const counts = {};
+  DATA.trips.raw.forEach(r => counts[r._dept] = (counts[r._dept] || 0) + 1);
+  const order = [...Object.keys(DEPTS), 'OTHER', 'NONE'].filter(d => counts[d]);
+  const sel = $('f-dept'), want = DATA.ui.pendingDept || sel.value;
+  sel.innerHTML = '<option value="all">All departments</option>' + order.map(d => `<option value="${d}">${esc(deptName(d))}${DEPTS[d] ? ' (' + d + ')' : ''}</option>`).join('');
+  sel.value = order.includes(want) ? want : 'all';
+  DATA.ui.pendingDept = null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Refresh: filter row state → data → views
+// ═══════════════════════════════════════════════════════════════════════════
+function refreshAll() {
   savePrefs();
+  $('fb-date-v').textContent = rangeLabel();
+  $('fb-date').classList.toggle('active', DATA.ui.range.preset !== 'all');
+  $('fb-bases-v').textContent = basesLabel();
+  $('fb-bases').classList.toggle('active', DATA.ui.bases.size !== ALL_BASES.length);
+  $('f-rank').classList.toggle('active', $('f-rank').value !== 'all');
+  $('f-dept').classList.toggle('active', $('f-dept').value !== 'all');
+  $('w-cover').classList.toggle('active', $('w-cover').value !== '');
+  const more = [!$('f-ncl').checked, !$('f-eg').checked, !$('f-cv').checked, $('f-tr').checked, $('f-dir').value !== 'all', +$('f-min').value !== 3, $('f-bg').checked].filter(Boolean).length;
+  $('more-n').textContent = more; $('more-n').style.display = more ? '' : 'none';
+  $('fb-more').classList.toggle('active', !!more);
+  applyFilters();
+  if (DATA.ui.section === 'trips') renderTrips(); else renderWfly();
+}
+
+function resetFilters() {
+  DATA.ui.range = {preset: 'all', from: null, to: null};
+  $('f-rank').value = 'all'; $('f-dept').value = 'all'; $('f-dir').value = 'all';
+  $('f-min').value = 3; $('min-val').textContent = '3'; $('f-bg').checked = false;
+  $('f-ncl').checked = true; $('f-eg').checked = true; $('f-cv').checked = true; $('f-tr').checked = false;
+  $('base-search').value = ''; filterBaseChips('');
+  ['w-emp','w-cap','w-reason','w-cover'].forEach(id => $(id).value = '');
+  $('w-search').value = ''; W.crew = null;
+  if (DATA.wfly) W.acts = new Set(uniq(DATA.wfly.EVENTS, 'activity'));
+  wBuildActs();
+  DATA.ui.bases = new Set(ALL_BASES); syncChips();
+  refreshAll();
+}
+
+function applyFilters() {
+  const rg = currentRange();
   if (DATA.meta.tripsLoaded) {
     const excNCL = $('f-ncl').checked, excEg = $('f-eg').checked, excCV = $('f-cv').checked, excTr = $('f-tr').checked;
-    const rank = $('f-rank').value, month = $('f-month').value, dir = $('f-dir').value, bases = DATA.ui.bases;
+    const rank = $('f-rank').value, dir = $('f-dir').value, bases = DATA.ui.bases;
     DATA.trips.filtered = DATA.trips.raw.filter(r => {
       const cb = r['Crew Base'], tb = r['Trip Base'], rk = r['Rank'];
       const tr = r['Training / Non-Training - Desc'] || '';
+      if (!inRange(r._date, rg)) return false;
       if (!bases.has(cb) && !bases.has(tb)) return false;
       if (excNCL && cb==='NCL' && tb==='LGW' && rk==='FO' && tr==='Training Flight') return false;
       if (excEg && (tb==='SSH' || tb==='HRG')) return false;
       if (excCV && tb==='SID') return false;
       if (excTr && TRAINING_TRIPS.has(tr)) return false;
       if (rank === 'pilots' ? !PILOT_RANKS.has(rk) : rank === 'cabin' ? PILOT_RANKS.has(rk) : (rank !== 'all' && rk !== rank)) return false;
-      if (month !== 'all' && r._month !== month) return false;
       if (dir === 'intra' && r._crewAoc !== r._tripAoc) return false;
       if (dir === 'inter' && r._crewAoc === r._tripAoc) return false;
       return true;
     });
   } else DATA.trips.filtered = [];
   MEMO = new Map();
-  updateSidebar();
-  if (DATA.ui.section === 'trips') renderCurrent();
-}
-
-function resetFilters() {
-  $('f-rank').value = 'all'; $('f-month').value = 'all'; $('f-dir').value = 'all';
-  $('f-min').value = 3; $('min-val').textContent = '3'; $('f-bg').checked = false;
-  $('f-ncl').checked = true; $('f-eg').checked = true; $('f-cv').checked = true; $('f-tr').checked = false;
-  $('base-search').value = ''; filterBaseChips('');
-  setBases('all');
-}
-
-function buildBaseGrid() {
-  $('base-grid').innerHTML = ALL_BASES.map(b =>
-    `<div class="base-chip ${aocCls(b)} ${DATA.ui.bases.has(b)?'on':''}" id="bc-${b}" onclick="toggleBase('${b}')" title="${esc(apName(b))}">${b}</div>`).join('');
-  syncChips();
-}
-function syncChips() {
-  document.querySelectorAll('.base-chip').forEach(el => el.classList.toggle('on', DATA.ui.bases.has(el.id.slice(3))));
-  for (const aoc of Object.keys(BASES)) $('aoc-'+aoc).classList.toggle('on', BASES[aoc].every(b => DATA.ui.bases.has(b)));
-}
-function toggleBase(b) { DATA.ui.bases.has(b) ? DATA.ui.bases.delete(b) : DATA.ui.bases.add(b); syncChips(); applyFilters(); }
-function toggleAoc(aoc) {
-  const on = !BASES[aoc].every(b => DATA.ui.bases.has(b));
-  for (const b of BASES[aoc]) on ? DATA.ui.bases.add(b) : DATA.ui.bases.delete(b);
-  syncChips(); applyFilters();
-}
-function setBases(mode) {
-  DATA.ui.bases = mode === 'all' ? new Set(ALL_BASES) : mode === 'none' ? new Set() : new Set(BASES[mode]);
-  syncChips(); applyFilters();
-}
-function filterBaseChips(q) {
-  const lq = q.toLowerCase();
-  document.querySelectorAll('.base-chip').forEach(c => {
-    const code = c.id.slice(3);
-    c.style.display = (code.toLowerCase().includes(lq) || apName(code).toLowerCase().includes(lq)) ? '' : 'none';
-  });
-}
-function initMonthSelect() {
-  const months = [...new Set(DATA.trips.raw.map(r => r._month))].sort();
-  const sel = $('f-month'), want = DATA.ui.pendingMonth || sel.value;
-  sel.innerHTML = '<option value="all">All months</option>' + months.map(m => `<option value="${m}">${fmtMonth(m)}</option>`).join('');
-  sel.value = months.includes(want) ? want : 'all';
-  DATA.ui.pendingMonth = null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Tripping — overlap analytics
 // A "crossing" = on the same date, crew moved A→B AND other crew moved B→A.
+// Department filter keeps crossings where that department booked at least one of the moves.
 // ═══════════════════════════════════════════════════════════════════════════
 function computeCrossings(recs) {
   const byDate = {};
@@ -1154,110 +1228,133 @@ function computeCrossings(recs) {
     if (r['Crew Base'] === r['Trip Base']) continue;
     const d = byDate[r._date] = byDate[r._date] || {};
     const k = r['Crew Base']+'→'+r['Trip Base'];
-    d[k] = (d[k] || 0) + 1;
+    (d[k] = d[k] || []).push(r);
   }
   const out = [];
   for (const [date, routes] of Object.entries(byDate)) {
-    for (const [route, n] of Object.entries(routes)) {
+    for (const [route, rs] of Object.entries(routes)) {
       const [a, b] = route.split('→');
       const rev = routes[b+'→'+a];
-      if (rev && a < b) out.push({date, a, b, ab:n, ba:rev});
+      if (!rev || a >= b) continue;
+      const depts = {};
+      for (const r of rs.concat(rev)) depts[r._dept] = (depts[r._dept] || 0) + 1;
+      out.push({date, a, b, ab: rs.length, ba: rev.length, depts, trips: rs.concat(rev)});
     }
   }
   return out;
 }
+const getAllCrossings = () => memo('xa', () => computeCrossings(DATA.trips.filtered));
+// Crossings in scope of the department filter
+const getCrossings = () => memo('x', () => {
+  const d = $('f-dept').value;
+  return d === 'all' ? getAllCrossings() : getAllCrossings().filter(x => x.depts[d]);
+});
 function computeHotspots(xings) {
-  const m = {};
+  const m = {}, d = $('f-dept').value;
   for (const x of xings) {
     const k = x.a+'↔'+x.b;
-    const h = m[k] = m[k] || {k, a:x.a, b:x.b, days:0, moves:0, ab:0, ba:0, dates:[]};
-    h.days++; h.moves += x.ab + x.ba; h.ab += x.ab; h.ba += x.ba; h.dates.push(x.date);
+    const h = m[k] = m[k] || {k, a:x.a, b:x.b, days:0, moves:0, ab:0, ba:0, dates:[], depts:{}};
+    h.days++; h.ab += x.ab; h.ba += x.ba; h.dates.push(x.date);
+    h.moves += d === 'all' ? x.ab + x.ba : x.depts[d];
+    for (const [dep, n] of Object.entries(x.depts)) h.depts[dep] = (h.depts[dep] || 0) + n;
   }
   return Object.values(m).sort((a,b) => b.days - a.days || b.moves - a.moves);
 }
-const getCrossings = () => memo('x', () => computeCrossings(DATA.trips.filtered));
 const getHotspots = () => memo('hs', () => computeHotspots(getCrossings()).filter(h => h.days >= +$('f-min').value));
 const getBaseCounts = () => memo('bc', () => {
   const out = {}, inn = {};
   for (const r of DATA.trips.filtered) { out[r['Crew Base']] = (out[r['Crew Base']]||0)+1; inn[r['Trip Base']] = (inn[r['Trip Base']]||0)+1; }
   return {out, inn};
 });
+// Overlapping moves by department, over the pairs currently shown
+const getDeptTotals = () => memo('dt', () => {
+  const keys = new Set(getHotspots().map(h => h.k)), t = {};
+  for (const x of getAllCrossings()) if (keys.has(x.a+'↔'+x.b)) for (const [d, n] of Object.entries(x.depts)) t[d] = (t[d] || 0) + n;
+  return t;
+});
 
-function updateSidebar() {
+function scopeLabel() {
+  const parts = [rangeLabel()];
+  const r = $('f-rank'); if (r.value !== 'all') parts.push(r.options[r.selectedIndex].text);
+  const d = $('f-dept'); if (d.value !== 'all') parts.push(deptName(d.value));
+  if (DATA.ui.bases.size !== ALL_BASES.length) parts.push(basesLabel() + ' bases');
+  return parts.join(' · ');
+}
+
+function kpi(label, value, sub, color) {
+  return `<div class="kpi"><div class="kpi-l">${color ? `<i style="background:${color};"></i>` : ''}${label}</div><div class="kpi-v">${value}</div>${sub ? `<div class="kpi-s">${sub}</div>` : ''}</div>`;
+}
+
+function renderTrips() {
   if (!DATA.meta.tripsLoaded) {
-    ['s-tot','s-xing','s-moves'].forEach(id => $(id).textContent = '—');
-    $('hs-cross').innerHTML = '<div class="hs-empty">Load tripping data</div>';
+    $('t-kpis').innerHTML = '';
+    $('hs-list').innerHTML = '<div class="empty">No tripping data yet</div>';
+    $('dept-bars').innerHTML = '';
+    renderChart();
     return;
   }
-  const hs = getHotspots();
-  $('s-tot').textContent = fmtN(DATA.trips.filtered.length);
-  $('s-xing').textContent = fmtN(hs.length);
-  $('s-moves').textContent = fmtN(hs.reduce((s,h) => s + h.moves, 0));
+  const hs = getHotspots(), moves = hs.reduce((s,h) => s + h.moves, 0), trips = DATA.trips.filtered.length;
+  const days = new Set(getCrossings().filter(x => hs.some(h => h.a === x.a && h.b === x.b)).map(x => x.date)).size;
+  const dt = getDeptTotals(), dtTotal = Object.values(dt).reduce((s,n) => s+n, 0);
+  const topDept = Object.entries(dt).filter(([d]) => DEPTS[d]).sort((a,b) => b[1]-a[1])[0];
+  $('t-kpis').innerHTML =
+    kpi('Trips in scope', fmtN(trips), scopeLabel()) +
+    kpi('Crossing pairs', fmtN(hs.length), `base pairs with two-way moves on ≥${$('f-min').value} days`, 'var(--cross)') +
+    kpi('Overlapping moves', fmtN(moves), `${trips ? (moves/trips*100).toFixed(1) : 0}% of trips · on ${fmtN(days)} days`, 'var(--cross)') +
+    kpi('Top booker of overlaps', topDept ? esc(deptName(topDept[0])) : '—', topDept ? `${pct(topDept[1], dtTotal)}% of overlapping moves` : 'no department-coded moves');
+
   const sel = DATA.ui.selection;
-  $('hs-cross').innerHTML = hs.slice(0, 25).map(h => `
-    <div class="hs-item ${sel && sel.k === h.k ? 'on' : ''}" onclick="pickCross(${ja(h.a)},${ja(h.b)})">
-      <span class="hs-badge">${h.days}d·${h.moves}mv</span>
-      <div class="hs-route">${esc(h.a)} ↔ ${esc(h.b)}</div>
-      <div class="hs-meta">${esc(apName(h.a))} / ${esc(apName(h.b))}</div>
-    </div>`).join('') || '<div class="hs-empty">No overlapping movement in current scope</div>';
+  $('hs-sub').textContent = `${fmtN(hs.length)} pairs · sorted by overlap days`;
+  $('hs-list').innerHTML = hs.slice(0, 60).map(h => `
+    <button class="li ${sel && sel.k === h.k ? 'on' : ''}" onclick="pickCross(${ja(h.a)},${ja(h.b)})">
+      <span class="li-t">${esc(h.a)} ↔ ${esc(h.b)}</span><span class="li-v">${h.days} days</span>
+      <span class="li-s">${esc(apName(h.a))} · ${esc(apName(h.b))}</span><span class="li-vs">${fmtN(h.moves)} moves</span>
+    </button>`).join('') || '<div class="empty">No overlapping movement in this scope</div>';
+
+  const dsel = $('f-dept').value;
+  const rows = Object.entries(dt).sort((a,b) => b[1]-a[1]);
+  const max = Math.max(1, ...rows.map(r => r[1]));
+  $('dept-bars').innerHTML = rows.map(([d, n]) => `
+    <button class="bar ${dsel === d ? 'on' : dsel !== 'all' ? 'dim' : ''}" onclick="setDept(${ja(d)})" title="${esc(deptName(d))}: ${fmtN(n)} moves (${pct(n, dtTotal)}%)">
+      <span>${esc(deptName(d))}</span><span class="bar-t"><span class="bar-f" style="display:block;width:${n/max*100}%"></span></span><span class="bar-n">${fmtN(n)}</span>
+    </button>`).join('') || '<div class="empty" style="padding:10px;">No overlaps in scope</div>';
+  renderChart();
 }
+function setDept(d) { $('f-dept').value = $('f-dept').value === d ? 'all' : d; refreshAll(); }
 
 function pickCross(a, b) {
   if (a > b) [a, b] = [b, a];
   const k = a+'↔'+b;
   DATA.ui.selection = DATA.ui.selection?.k === k ? null : {k, a, b};
-  updateSidebar(); renderCurrent();
+  renderTrips();
   if (!DATA.ui.selection) return closeDP();
+  const d = $('f-dept').value;
   const rel = getCrossings().filter(x => x.a === a && x.b === b).sort((x,y) => x.date.localeCompare(y.date));
+  const depts = {};
+  rel.forEach(x => Object.entries(x.depts).forEach(([dep, n]) => depts[dep] = (depts[dep] || 0) + n));
   const tot = rel.reduce((s,x) => s + x.ab + x.ba, 0);
-  openDP(`${a} ↔ ${b}`, `${rel.length} overlap days · ${tot} moves · ${AOC_OF[a]||'Other'} ↔ ${AOC_OF[b]||'Other'}`, `
-    <table class="tbl"><tr><th>Date</th><th class="r">${esc(a)}→${esc(b)}</th><th class="r">${esc(b)}→${esc(a)}</th></tr>
-    ${rel.slice(0,60).map(x => `<tr><td>${x.date}</td><td class="r">${x.ab}</td><td class="r">${x.ba}</td></tr>`).join('')}
-    ${rel.length > 60 ? `<tr><td colspan="3" style="color:var(--mut);">+${rel.length-60} more — in Excel export</td></tr>` : ''}</table>`);
+  openDP(`${a} ↔ ${b}`, `${rel.length} overlap days · ${tot} moves · ${scopeLabel()}`, `
+    <h4>Booked by</h4>
+    <table class="mini">${Object.entries(depts).sort((x,y) => y[1]-x[1]).map(([dep, n]) => `<tr><td>${esc(deptName(dep))}</td><td class="r">${n}</td><td class="r" style="color:var(--ink3);">${pct(n, tot)}%</td></tr>`).join('')}</table>
+    <h4>By day</h4>
+    <table class="mini"><tr><th>Date</th><th class="r">${esc(a)}→${esc(b)}</th><th class="r">${esc(b)}→${esc(a)}</th><th>Departments</th></tr>
+    ${rel.map(x => `<tr><td>${fmtDay(x.date)}</td><td class="r">${x.ab}</td><td class="r">${x.ba}</td><td style="font-size:12px;color:var(--ink2);">${Object.keys(x.depts).map(dep => DEPTS[dep] ? dep : dep === 'NONE' ? '—' : 'other').join(', ')}</td></tr>`).join('')}</table>`);
 }
 function openDP(title, sub, body) {
   $('dp-title').textContent = title; $('dp-sub').textContent = sub; $('dp-body').innerHTML = body;
-  $('dp').classList.add('on');
+  $('dp').classList.add('on'); $('dp').setAttribute('aria-hidden', 'false');
 }
 function closeDP(rerender) {
-  $('dp').classList.remove('on');
+  $('dp').classList.remove('on'); $('dp').setAttribute('aria-hidden', 'true');
   const had = !!DATA.ui.selection;
   DATA.ui.selection = null;
-  if (rerender && had) { updateSidebar(); renderCurrent(); }
+  if (rerender && had && DATA.ui.section === 'trips') renderTrips();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Tripping — Arc & Map (overlap graphs)
+// Tripping — network (arc) & map
 // ═══════════════════════════════════════════════════════════════════════════
-function svgSize(viewId, svg) {
-  const v = $(viewId), legend = v.querySelector('.legend');
-  const W = v.clientWidth, H = v.clientHeight - (legend ? legend.offsetHeight : 32);
-  svg.attr('width', W).attr('height', H);
-  return {W, H};
-}
-function emptySvg(svg, W, H, msg) {
-  svg.append('text').attr('x',W/2).attr('y',H/2).attr('text-anchor','middle').attr('fill','#666666').attr('font-family','Inter').attr('font-size',14).text(msg);
-}
-// Human label for the current tripping filter scope (shown in graph subtitles and tooltips)
-function scopeLabel() {
-  const m = $('f-month').value, r = $('f-rank');
-  const parts = [m === 'all' ? 'All months' : fmtMonth(m)];
-  if (r.value !== 'all') parts.push(r.options[r.selectedIndex].text);
-  if (DATA.ui.bases.size !== ALL_BASES.length) parts.push(DATA.ui.bases.size + ' bases');
-  return parts.join(' · ');
-}
-// Per-base totals for the current filters: all trips out/in, plus moves that are part of a crossing
-function baseTooltipRows(b, cross) {
-  const {out, inn} = getBaseCounts();
-  const touching = cross.filter(e => e.a === b || e.b === b);
-  return [['Period', scopeLabel()], ['AOC', AOC_OF[b] || 'Other'], ['Trips out (all)', fmtN(out[b] || 0)], ['Trips in (all)', fmtN(inn[b] || 0)],
-          ['Overlapping moves', fmtN(touching.reduce((s, e) => s + e.n, 0))], ['Crossing pairs', touching.length]];
-}
-function svgTitle(svg, title, sub) {
-  svg.append('text').attr('x',16).attr('y',22).attr('font-family','Inter').attr('font-size',15).attr('font-weight',600).attr('fill','#2b2b2b').text(title);
-  svg.append('text').attr('x',16).attr('y',38).attr('font-family','Inter').attr('font-size',11).attr('fill','#666666').text(sub);
-}
-// Edges to draw: every crossing pair, plus (optionally) faded non-overlapping flows between the same bases
+const C = {cross:'#c8102e', ink:'#232326', ink2:'#55565c', ink3:'#8c8d93'};
 function graphEdges() {
   const hs = getHotspots();
   const edges = hs.map(h => ({...h, cross:true, n:h.moves}));
@@ -1268,298 +1365,275 @@ function graphEdges() {
       if (a === b) continue;
       const k = a < b ? a+'↔'+b : b+'↔'+a;
       if (crossKeys.has(k)) continue;
-      const f = flow[k] = flow[k] || {k, a: a < b ? a : b, b: a < b ? b : a, n:0, cross:false};
-      f.n++;
+      (flow[k] = flow[k] || {k, a: a < b ? a : b, b: a < b ? b : a, n:0, cross:false}).n++;
     }
     edges.unshift(...Object.values(flow).filter(f => f.n >= 3));
   }
-  return edges;
+  return edges.filter(e => AP[e.a] && AP[e.b]);
 }
-
-function renderArc() {
-  const svg = d3.select('#cv-arc'); svg.selectAll('*').remove();
-  const {W, H} = svgSize('view-arc', svg);
-  if (!DATA.meta.tripsLoaded) return emptySvg(svg, W, H, 'Load a tripping CSV to begin');
-  const edges = graphEdges().filter(e => AP[e.a] && AP[e.b]);
-  const cross = edges.filter(e => e.cross);
-  if (!cross.length) return emptySvg(svg, W, H, 'No overlapping movement matches the current filters');
-
+function baseTooltipRows(b, cross) {
+  const {out, inn} = getBaseCounts();
+  const touching = cross.filter(e => e.a === b || e.b === b);
+  return [['Trips out', fmtN(out[b] || 0)], ['Trips in', fmtN(inn[b] || 0)],
+          ['Overlapping moves', fmtN(touching.reduce((s, e) => s + e.n, 0))], ['Crossing pairs', touching.length], ['Period', rangeLabel()]];
+}
+function edgeTooltipRows(e) {
+  return [['Overlap days', e.days], [`${e.a} → ${e.b}`, fmtN(e.ab)], [`${e.b} → ${e.a}`, fmtN(e.ba)], ['Moves in scope', fmtN(e.n)], ['Period', rangeLabel()]];
+}
+function renderChart() {
+  const svg = d3.select('#cv'); svg.selectAll('*').remove();
+  const box = $('cv').getBoundingClientRect(), W = box.width, H = box.height;
+  if (!W || DATA.ui.section !== 'trips') return;
+  const msg = t => svg.append('text').attr('x', W/2).attr('y', H/2).attr('text-anchor','middle').attr('fill', C.ink3).attr('font-size', 14).text(t);
+  if (!DATA.meta.tripsLoaded) return msg('Load the tripping report to see overlaps');
+  const edges = graphEdges(), cross = edges.filter(e => e.cross);
+  if (!cross.length) return msg('No overlapping movement in this scope');
+  const total = getHotspots().length;
+  $('chart-sub').textContent = `${scopeLabel()} · ${fmtN(cross.length)} pairs` + (cross.length !== total ? ` drawn (${total - cross.length} involve airports without map coordinates)` : '');
+  DATA.ui.view === 'map' ? drawMap(svg, W, H, edges, cross) : drawNetwork(svg, W, H, edges, cross);
+}
+function drawEdges(g, edges, pos, bendK, bendMax, maxN) {
+  const sel = DATA.ui.selection;
+  edges.sort((x,y) => (x.cross - y.cross) || (x.n - y.n)).forEach(e => {
+    const p1 = pos(e.a), p2 = pos(e.b);
+    const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2, dx = p2.x-p1.x, dy = p2.y-p1.y, dist = Math.hypot(dx, dy) || 1;
+    const bend = Math.min(dist*bendK, bendMax), nx = -dy/dist*bend, ny = dx/dist*bend;
+    const d = `M${p1.x},${p1.y} Q${mx+nx},${my+ny} ${p2.x},${p2.y}`;
+    if (!e.cross) { g.append('path').attr('d', d).attr('fill','none').attr('stroke', aocHex(e.a)).attr('stroke-width', 1).attr('stroke-opacity', sel ? 0.04 : 0.14); return; }
+    const isSel = sel && sel.k === e.k, w = 1.2 + Math.sqrt(e.n / maxN) * 10;
+    g.append('path').attr('d', d).attr('fill','none').attr('stroke', C.cross).attr('stroke-linecap','round')
+      .attr('stroke-width', isSel ? w + 2 : w).attr('stroke-opacity', isSel ? 0.95 : sel ? 0.1 : 0.22 + 0.55 * Math.sqrt(e.n / maxN));
+    // wide invisible hit area so thin lines are easy to hover/click
+    g.append('path').attr('d', d).attr('fill','none').attr('stroke','transparent').attr('stroke-width', Math.max(w, 14)).attr('cursor','pointer')
+      .on('mousemove', ev => showTooltip(ev, `${e.a} ↔ ${e.b}`, edgeTooltipRows(e))).on('mouseleave', hideTooltip)
+      .on('click', () => pickCross(e.a, e.b));
+  });
+}
+function drawNode(g, code, p, r, cross, labelPos) {
+  const col = aocHex(code), sel = DATA.ui.selection, isSel = sel && (sel.a === code || sel.b === code);
+  const isX = cross.some(e => e.a === code || e.b === code);
+  const ng = g.append('g').attr('transform', `translate(${p.x},${p.y})`).style('cursor','default');
+  ng.append('circle').attr('r', r).attr('fill', isSel ? col : '#fff').attr('stroke', col).attr('stroke-width', isX ? 2 : 1.2).attr('stroke-opacity', isX ? 1 : 0.5);
+  ng.append('text').attr('text-anchor','middle').attr('dy','0.35em').attr('font-size', r > 15 ? 11 : 10).attr('font-weight', 600)
+    .attr('fill', isSel ? '#fff' : col).text(code);
+  if (labelPos) ng.append('text').attr('x', labelPos.x).attr('y', labelPos.y).attr('text-anchor', labelPos.anchor).attr('dy','0.35em')
+    .attr('font-size', 11.5).attr('fill', C.ink2).text(apName(code).replace('London ', ''));
+  ng.on('mousemove', ev => showTooltip(ev, `${code} — ${apName(code)}`, baseTooltipRows(code, cross))).on('mouseleave', hideTooltip);
+}
+function drawNetwork(svg, W, H, edges, cross) {
   const nodes = [...new Set(edges.flatMap(e => [e.a, e.b]))];
   const order = {UK:0, Europe:1, Swiss:2, Other:3};
   nodes.sort((a,b) => (order[AOC_OF[a]||'Other'] - order[AOC_OF[b]||'Other']) || a.localeCompare(b));
-  const crossBases = new Set(cross.flatMap(e => [e.a, e.b]));
-  const {out: outCnt, inn: inCnt} = getBaseCounts();
-
-  const cx = W/2, cy = H/2 + 10, R = Math.max(60, Math.min(W, H) * 0.36);
-  const pos = {};
-  nodes.forEach((b, i) => { const a = i*(2*Math.PI/nodes.length) - Math.PI/2; pos[b] = {x: cx + R*Math.cos(a), y: cy + R*Math.sin(a), angle: a}; });
-  const maxN = Math.max(...cross.map(e => e.n), 1);
-  const sw = d3.scaleSqrt().domain([0, maxN]).range([1, 13]);
-  const sel = DATA.ui.selection;
+  const cx = W/2, cy = H/2, R = Math.max(80, Math.min(W - 220, H - 90) / 2);
+  const P = {};
+  nodes.forEach((b, i) => { const a = i*(2*Math.PI/nodes.length) - Math.PI/2; P[b] = {x: cx + R*Math.cos(a), y: cy + R*Math.sin(a), angle: a}; });
   const g = svg.append('g');
-
-  edges.sort((x,y) => (x.cross - y.cross) || (x.n - y.n)).forEach(e => {
-    const p1 = pos[e.a], p2 = pos[e.b];
-    const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2, dx = p2.x-p1.x, dy = p2.y-p1.y, dist = Math.hypot(dx, dy) || 1;
-    const bend = Math.min(dist*0.38, 110), nx = -dy/dist*bend, ny = dx/dist*bend;
-    const isSel = sel && sel.k === e.k;
-    const path = g.append('path')
-      .attr('d', `M${p1.x},${p1.y} Q${mx+nx},${my+ny} ${p2.x},${p2.y}`).attr('fill','none');
-    if (!e.cross) {
-      path.attr('stroke', aocHex(e.a)).attr('stroke-width', 0.8).attr('stroke-opacity', sel ? 0.03 : 0.12);
-      return;
-    }
-    path.attr('stroke', '#c8102e').attr('stroke-width', sw(e.n) + (isSel ? 2 : 0))
-      .attr('stroke-opacity', isSel ? 0.95 : sel ? 0.12 : 0.25 + 0.6 * e.n / maxN).attr('cursor','pointer')
-      .on('mousemove', ev => showTooltip(ev, `${e.a} ↔ ${e.b}`, [['Period', scopeLabel()], ['Overlap days', e.days], [`${e.a}→${e.b}`, e.ab], [`${e.b}→${e.a}`, e.ba], ['AOC', (AOC_OF[e.a]||'Other')+' ↔ '+(AOC_OF[e.b]||'Other')]]))
-      .on('mouseleave', hideTooltip)
-      .on('click', () => pickCross(e.a, e.b));
-  });
-
+  drawEdges(g, edges, c => P[c], 0.38, 120, Math.max(...cross.map(e => e.n), 1));
   nodes.forEach(b => {
-    const p = pos[b], col = aocHex(b), isX = crossBases.has(b);
-    const isSel = sel && (sel.a === b || sel.b === b);
-    const ng = g.append('g').attr('transform', `translate(${p.x},${p.y})`);
-    ng.append('circle').attr('r', 19).attr('fill', isSel ? col : '#ffffff').attr('stroke', isX ? '#c8102e' : col).attr('stroke-width', isSel ? 2.5 : 1.5).attr('stroke-opacity', isX ? 1 : 0.5);
-    ng.append('text').attr('text-anchor','middle').attr('dy','0.35em').attr('font-family','Inter').attr('font-size',11).attr('font-weight',500)
-      .attr('fill', isSel ? '#ffffff' : col).text(b);
-    const la = p.angle, anchor = Math.cos(la) > 0.1 ? 'start' : Math.cos(la) < -0.1 ? 'end' : 'middle';
-    ng.append('text').attr('x', Math.cos(la)*30).attr('y', Math.sin(la)*30).attr('text-anchor', anchor).attr('dy','0.35em')
-      .attr('font-family','Inter').attr('font-size',11).attr('fill','#666666').text(apName(b).replace('London ',''));
-    ng.on('mousemove', ev => showTooltip(ev, b+' — '+apName(b), baseTooltipRows(b, cross))).on('mouseleave', hideTooltip);
+    const la = P[b].angle, anchor = Math.cos(la) > 0.15 ? 'start' : Math.cos(la) < -0.15 ? 'end' : 'middle';
+    drawNode(g, b, P[b], 18, cross, {x: Math.cos(la)*28, y: Math.sin(la)*28, anchor});
   });
-  svgTitle(svg, 'Overlapping crew movement', `${scopeLabel()} · ${fmtN(cross.length)} crossing pairs · ${fmtN(cross.reduce((s,e) => s+e.n, 0))} moves where crew went both ways on the same day`);
 }
-
-function renderMap() {
-  const svg = d3.select('#cv-map'); svg.selectAll('*').remove();
-  const {W, H} = svgSize('view-map', svg);
-  if (!DATA.meta.tripsLoaded) return emptySvg(svg, W, H, 'Load a tripping CSV to begin');
-  const edges = graphEdges().filter(e => AP[e.a] && AP[e.b]);
-  const cross = edges.filter(e => e.cross);
-  if (!cross.length) return emptySvg(svg, W, H, 'No overlapping movement matches the current filters');
-
+function drawMap(svg, W, H, edges, cross) {
   const nodes = [...new Set(edges.flatMap(e => [e.a, e.b]))];
   const lats = nodes.map(c => AP[c].lat), lons = nodes.map(c => AP[c].lon);
   const minLat = Math.min(...lats), maxLat = Math.max(...lats), minLon = Math.min(...lons), maxLon = Math.max(...lons);
-  const pad = 65;
-  const project = (lat, lon) => ({
-    x: pad + (lon - minLon + 1) / (maxLon - minLon + 2) * (W - 2*pad),
-    y: pad + 20 + (1 - (lat - minLat + 0.5) / (maxLat - minLat + 1)) * (H - 2*pad - 40)
-  });
-  const crossBases = new Set(cross.flatMap(e => [e.a, e.b]));
-  const {out: outCnt, inn: inCnt} = getBaseCounts();
-  const maxN = Math.max(...cross.map(e => e.n), 1);
-  const sel = DATA.ui.selection;
+  const pad = 50;
+  // equirectangular with latitude correction so shapes aren't squashed
+  const kx = Math.cos((minLat + maxLat) / 2 * Math.PI / 180);
+  const spanX = (maxLon - minLon) * kx || 1, spanY = (maxLat - minLat) || 1;
+  const s = Math.min((W - 2*pad) / spanX, (H - 2*pad) / spanY);
+  const ox = (W - spanX * s) / 2, oy = (H - spanY * s) / 2;
+  const pos = c => ({x: ox + (AP[c].lon - minLon) * kx * s, y: oy + (maxLat - AP[c].lat) * s});
   const g = svg.append('g');
-
-  edges.sort((x,y) => (x.cross - y.cross) || (x.n - y.n)).forEach(e => {
-    const p1 = project(AP[e.a].lat, AP[e.a].lon), p2 = project(AP[e.b].lat, AP[e.b].lon);
-    const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2, dx = p2.x-p1.x, dy = p2.y-p1.y, dist = Math.hypot(dx, dy) || 1;
-    const nx = -dy/dist*Math.min(dist*0.22,50), ny = dx/dist*Math.min(dist*0.22,50);
-    const path = g.append('path').attr('d', `M${p1.x},${p1.y} Q${mx+nx},${my+ny} ${p2.x},${p2.y}`).attr('fill','none');
-    if (!e.cross) { path.attr('stroke', aocHex(e.a)).attr('stroke-width', 0.8).attr('stroke-opacity', sel ? 0.03 : 0.12); return; }
-    const isSel = sel && sel.k === e.k, w = 1 + Math.sqrt(e.n/maxN) * 10;
-    path.attr('stroke','#c8102e').attr('stroke-width', isSel ? w+2 : w).attr('stroke-opacity', isSel ? 0.9 : sel ? 0.12 : 0.6).attr('cursor','pointer')
-      .on('mousemove', ev => showTooltip(ev, `${e.a} ↔ ${e.b}`, [['Period', scopeLabel()], ['Overlap days', e.days], [`${e.a}→${e.b}`, e.ab], [`${e.b}→${e.a}`, e.ba]]))
-      .on('mouseleave', hideTooltip)
-      .on('click', () => pickCross(e.a, e.b));
-  });
-
-  nodes.forEach(code => {
-    const info = AP[code], p = project(info.lat, info.lon), col = aocHex(code), isX = crossBases.has(code);
-    const isSel = sel && (sel.a === code || sel.b === code);
-    const ng = g.append('g').attr('transform', `translate(${p.x},${p.y})`);
-    if (isX) ng.append('circle').attr('r', 18).attr('fill','none').attr('stroke','rgba(248,113,113,0.25)');
-    ng.append('circle').attr('r', 14).attr('fill', isSel ? col : '#ffffff').attr('stroke', isX ? '#c8102e' : col).attr('stroke-width', 1.5);
-    ng.append('text').attr('text-anchor','middle').attr('dy','0.35em').attr('font-family','Inter').attr('font-size',10).attr('font-weight',500).attr('fill', isSel ? '#ffffff' : col).text(code);
-    ng.on('mousemove', ev => showTooltip(ev, code+' — '+info.n, baseTooltipRows(code, cross)))
-      .on('mouseleave', hideTooltip);
-  });
-  svgTitle(svg, 'Overlap map', `${scopeLabel()} · ${fmtN(cross.length)} crossing routes · click a red route for the dates`);
-}
-
-function renderNotes() {
-  $('vb-notes').innerHTML = `
-    <div class="h1">How to read this</div>
-    <div class="sub">These views flag patterns worth investigating. They don't prove causation or wrongdoing — validate against rostering decisions before drawing conclusions.</div>
-    <div class="method-sec"><div class="method-metric" style="color:var(--cross);">Crossings (tripping overlap)</div>
-      <div class="method-def">On the same date, crew were tripped from base A to base B <strong>and</strong> other crew from B to A. Each red arc is one base pair; thickness is the number of overlapping moves; "days" is how many dates it happened on. The <em>min crossing days</em> slider hides one-off pairs. Turn on <em>background flows</em> to see non-overlapping movement faded behind.</div>
-      <div class="method-caveat">Simultaneous two-way movement is suspicious but not proof of inefficiency — qualifications, aircraft type or duty requirements may justify it. Counts are trip records, not unique crew. NCL pipeline, Egypt standby and Cape Verde are excluded by default.</div></div>
-    <div class="method-sec"><div class="method-metric" style="color:var(--ezy);">WFLY vs discretion &amp; unpaid leave</div>
-      <div class="method-def">Each WFLY (Willing to Fly) payment is shown with the number of <strong>discretion</strong> (FDP extension) events and <strong>ULV</strong> (unpaid leave) grants at the same base on the same day. A WFLY payment on a day ULV was granted at that base, or where discretion was in use, is a prompt to ask whether the cover was needed. Base tables compare the current selection with each base's full-year discretion/ULV volume.</div>
-      <div class="method-caveat">Discretion base is attributed from the flight route; ULV peaks in winter while WFLY peaks in summer, so annual ratios understate same-day overlap. Estimated costs come from the audit export.</div></div>
-    <div class="method-sec"><div class="method-metric">Data &amp; privacy</div>
-      <div class="method-def">Files you load are compressed and saved to this site's private, password-protected workspace (Netlify Blobs), so they load automatically next time for anyone signed in. Nothing is stored in the code repository. Each new upload of the same report type replaces the previous one. The WFLY cost rates are a shared setting stored in the same workspace.</div></div>`;
+  drawEdges(g, edges, pos, 0.2, 60, Math.max(...cross.map(e => e.n), 1));
+  nodes.forEach(c => drawNode(g, c, pos(c), 13, cross, null));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// WFLY audit — vs discretion & unpaid leave
+// WFLY — instances with same-day context
 // ═══════════════════════════════════════════════════════════════════════════
-const W = {acts: new Set(), crew: null, sortKey: 'date', sortDir: 1, open: {disc:true, ulv:true, repeat:false}};
+const W = {acts: new Set(), crew: null, sortKey: 'date', sortDir: 1};
 const uniq = (rows, k) => [...new Set(rows.map(r => r[k]).filter(Boolean))].sort();
 const isRest = a => a === 'REST' || a === 'D/O';
 
 function wInitFilters() {
   const ev = DATA.wfly?.EVENTS || [];
   W.acts = new Set(ev.map(r => r.activity)); W.crew = null;
-  const fill = (id, vals, label, fmt = v => v) => { $(id).innerHTML = `<option value="">${label}</option>` + vals.map(v => `<option value="${esc(v)}">${esc(fmt(v))}</option>`).join(''); };
-  fill('w-country', uniq(ev, 'country'), 'All countries');
-  fill('w-base', uniq(ev, 'base'), 'All bases');
-  fill('w-month', [...new Set(ev.map(r => r.date.slice(0,7)))].sort(), 'All months', m => fmtMonth(m));
-  fill('w-rank', uniq(ev, 'rank'), 'All ranks');
-  fill('w-emp', uniq(ev, 'employment'), 'All employment types');
-  fill('w-cap', uniq(ev, 'ptCapped'), 'All contract caps');
-  fill('w-reason', uniq(ev, 'reasonCode'), 'All reasons');
-  $('w-search').value = ''; $('w-cover').value = '';
+  const fill = (id, vals, label) => { $(id).innerHTML = `<option value="">${label}</option>` + vals.map(v => `<option value="${esc(v)}">${esc(v)}${id === 'w-reason' && REASONS[v] ? ' — ' + esc(REASONS[v]) : ''}</option>`).join(''); };
+  fill('w-emp', uniq(ev, 'employment'), 'All');
+  fill('w-cap', uniq(ev, 'ptCapped'), 'All');
+  fill('w-reason', uniq(ev, 'reasonCode'), 'All');
   wBuildActs();
 }
 function wBuildActs() {
   const counts = {};
   (DATA.wfly?.EVENTS || []).forEach(r => counts[r.activity] = (counts[r.activity]||0) + 1);
-  $('w-acts').innerHTML = Object.entries(counts).sort((a,b) => b[1]-a[1]).map(([a, n]) =>
-    `<label class="act-row ${isRest(a) ? 'rest' : ''}"><input type="checkbox" ${W.acts.has(a) ? 'checked' : ''} onchange="wToggleAct(${ja(a)}, this.checked)">
-     <span class="a-label">${esc(a)}</span><span class="a-count">${fmtN(n)}</span></label>`).join('') || '<div class="hs-empty">Load the WFLY audit</div>';
+  const entries = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+  $('w-acts').innerHTML = entries.map(([a, n]) =>
+    `<label class="check-row"><input type="checkbox" ${W.acts.has(a) ? 'checked' : ''} onchange="wToggleAct(${ja(a)}, this.checked)">
+     <span class="lbl">${esc(a)}${isRest(a) ? ' <span class="sub">rest / day off</span>' : ''}</span><span class="n">${fmtN(n)}</span></label>`).join('') || '<div class="empty" style="padding:10px;">Load the WFLY report</div>';
+  const all = entries.length, on = entries.filter(([a]) => W.acts.has(a)).length;
+  $('fb-acts-v').textContent = on === all ? 'All' : on === 0 ? 'None' : (on === 2 && W.acts.has('REST') && W.acts.has('D/O')) ? 'Rest / day off' : `${on} of ${all}`;
+  $('fb-acts').classList.toggle('active', on !== all);
 }
-function wToggleAct(a, on) { on ? W.acts.add(a) : W.acts.delete(a); renderWfly(); }
+function wToggleAct(a, on) { on ? W.acts.add(a) : W.acts.delete(a); wBuildActs(); renderWfly(); }
 function wSelectActs(list) { W.acts = new Set(list === 'all' ? uniq(DATA.wfly?.EVENTS || [], 'activity') : list); wBuildActs(); renderWfly(); }
-function wCountryChanged() {
-  const c = $('w-country').value, ev = DATA.wfly?.EVENTS || [];
-  const bases = uniq(c ? ev.filter(r => r.country === c) : ev, 'base');
-  $('w-base').innerHTML = '<option value="">All bases</option>' + bases.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
-  renderWfly();
-}
-function wReset() {
-  ['w-country','w-month','w-rank','w-emp','w-cap','w-reason','w-cover'].forEach(id => $(id).value = '');
-  $('w-search').value = ''; W.crew = null;
-  wCountryChanged(); wSelectActs('all');
-}
-function wFiltered() {
-  const ev = DATA.wfly?.EVENTS || [];
-  const f = {country: $('w-country').value, base: $('w-base').value, month: $('w-month').value, rank: $('w-rank').value,
-    emp: $('w-emp').value, cap: $('w-cap').value, reason: $('w-reason').value, cover: $('w-cover').value,
-    q: $('w-search').value.trim().toLowerCase()};
-  return ev.filter(r =>
-    W.acts.has(r.activity) &&
-    (!f.country || r.country === f.country) && (!f.base || r.base === f.base) &&
-    (!f.month || r.date.startsWith(f.month)) && (!f.rank || r.rank === f.rank) &&
-    (!f.emp || r.employment === f.emp) && (!f.cap || r.ptCapped === f.cap) &&
-    (!f.reason || r.reasonCode === f.reason) &&
-    (!W.crew || r.crewId === W.crew) && (!f.q || r.crewId.toLowerCase().includes(f.q)) &&
-    (!f.cover || (f.cover === 'disc' ? r.discretionThatDay > 0 : f.cover === 'ulv' ? r.ulvThatDay > 0 :
-      f.cover === 'either' ? (r.discretionThatDay > 0 || r.ulvThatDay > 0) : (r.discretionThatDay === 0 && r.ulvThatDay === 0))));
-}
-function wSelectionLabel() {
-  const all = uniq(DATA.wfly.EVENTS, 'activity'), act = [...W.acts];
-  if (act.length === all.length) return 'All WFLY instances';
-  if (act.length === 2 && act.every(isRest)) return 'Rest-day WFLY payments';
-  if (!act.length) return 'No activity selected';
-  return 'WFLY — ' + act.sort().join(', ');
-}
 
+function wFiltered() {
+  const ev = DATA.wfly?.EVENTS || [], rg = currentRange();
+  const rank = $('f-rank').value, allBases = DATA.ui.bases.size === ALL_BASES.length;
+  const f = {emp: $('w-emp').value, cap: $('w-cap').value, reason: $('w-reason').value, cover: $('w-cover').value, q: $('w-search').value.trim().toLowerCase()};
+  return ev.filter(r =>
+    W.acts.has(r.activity) && inRange(r.date, rg) &&
+    (allBases || DATA.ui.bases.has(r.base)) &&
+    (rank === 'all' || rank === 'pilots' || r.rank === rank) &&
+    (!f.emp || r.employment === f.emp) && (!f.cap || r.ptCapped === f.cap) && (!f.reason || r.reasonCode === f.reason) &&
+    (!W.crew || r.crewId === W.crew) && (!f.q || r.crewId.toLowerCase().includes(f.q)) &&
+    (!f.cover || (
+      f.cover === 'tripin' ? r.trippedIn > 0 :
+      f.cover === 'tripboth' ? r.trippedIn > 0 && r.trippedOut > 0 :
+      f.cover === 'disc' ? r.discretionThatDay > 0 :
+      f.cover === 'ulv' ? r.ulvThatDay > 0 :
+      f.cover === 'any' ? (r.trippedIn > 0 || r.discretionThatDay > 0 || r.ulvThatDay > 0) :
+      (r.trippedIn === 0 && r.discretionThatDay === 0 && r.ulvThatDay === 0))));
+}
 
 function renderWfly() {
-  const el = $('vb-wfly');
-  if (DATA.ui.view !== 'wfly') return;
+  const more = [$('w-emp').value, $('w-cap').value, $('w-reason').value, $('w-search').value.trim()].filter(Boolean).length;
+  $('wmore-n').textContent = more; $('wmore-n').style.display = more ? '' : 'none';
+  $('fb-wmore').classList.toggle('active', !!more);
+  if (DATA.ui.section !== 'wfly') return;
   if (!DATA.meta.wflyLoaded) {
-    el.innerHTML = `<div class="h1">WFLY vs discretion &amp; unpaid leave</div>
-      <div class="sub">Load the three source reports — they're joined by base and day:<br>
-        <strong>WFLY ($)</strong> crewBid details CSV (<code>Day of $ Date</code>, Base, Rank, crewBid, PT Contract, PT Capped?, Activity, special_activity_code)<br>
-        <strong>ULV</strong> Crew Schedule Statistics, GROUND DUTIES:ULV<br>
-        <strong>Discretion</strong> Discretion Report (Detailed Format)<br>
-        They're saved privately to the workspace, so this only needs doing once per refresh of the data.</div>
-      <div class="drop" style="max-width:440px;" onclick="pickFile('any')"><div class="drop-t">↑ Click to load files</div><div class="drop-s">Or drag them anywhere onto the window — several at once is fine</div></div>`;
+    $('w-kpis').innerHTML = '';
+    $('w-sub').textContent = '';
+    $('w-table').innerHTML = `<div class="empty-big"><h3>No WFLY data yet</h3><p>Load the WFLY ($) crewBid report, plus the ULV and discretion reports for same-day context.<br>They're saved to the shared workspace for everyone.</p><button class="btn primary" onclick="pickFile('any')">Upload files</button></div>`;
     return;
   }
-  const all = DATA.wfly.EVENTS, rows = wFiltered();
-  const perCrew = {}; rows.forEach(r => perCrew[r.crewId] = (perCrew[r.crewId]||0) + 1);
+  const all = DATA.wfly.EVENTS, rows = wFiltered(), n = rows.length || 1;
   const cost = rows.reduce((s,r) => s + r.estCost, 0);
-  const withDisc = rows.filter(r => r.discretionThatDay > 0).length, withUlv = rows.filter(r => r.ulvThatDay > 0).length;
-  const sorted = rows.slice().sort((a,b) => { const av = a[W.sortKey], bv = b[W.sortKey]; return (av < bv ? -1 : av > bv ? 1 : 0) * W.sortDir; });
-  const cols = [['date','Date'],['crewId','Crew ID'],['base','Base'],['rank','Rank'],['employment','Employment'],['discretionThatDay','Discretion that day'],['ulvThatDay','ULV that day'],['activity','Activity'],['reasonCode','Reason'],['estCost','Est. cost']];
-  const arrow = k => W.sortKey === k ? (W.sortDir === 1 ? ' ▲' : ' ▼') : '';
-  const tableRows = sorted.map(r => `<tr>
-    <td>${r.date}</td>
-    <td><button class="cell-btn" title="Show only this crew member" onclick="W.crew = W.crew === ${ja(r.crewId)} ? null : ${ja(r.crewId)}; renderWfly();">${esc(r.crewId)}</button>${perCrew[r.crewId] > 1 ? `<span class="cnt">×${perCrew[r.crewId]}</span>` : ''}</td>
-    <td>${esc(r.base)}</td>
-    <td><span class="badge ${esc(r.rank)}">${esc(r.rank)}</span></td>
-    <td>${esc(r.employment)}${r.ptCapped === 'Capped' ? '<span class="cnt">Capped</span>' : ''}</td>
-    <td class="r">${r.discretionThatDay ? `<button class="cell-btn disc" onclick="wDetail('disc',${ja(r.base)},${ja(r.date)})">${r.discretionThatDay}</button>` : '<span class="zero">0</span>'}</td>
-    <td class="r">${r.ulvThatDay ? `<button class="cell-btn ulv" onclick="wDetail('ulv',${ja(r.base)},${ja(r.date)})">${r.ulvThatDay}</button>` : '<span class="zero">0</span>'}</td>
-    <td><span class="badge ${isRest(r.activity) ? 'rest' : r.activity === 'FLT' ? 'flt' : ''}">${esc(r.activity)}</span></td>
-    <td>${esc(r.reasonCode)} <span style="color:var(--mut);">${esc(r.reasonDesc)}</span></td>
-    <td class="r">${r.estCost ? '£' + r.estCost.toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2}) : '<span class="zero">—</span>'}</td></tr>`).join('');
+  const cnt = f => rows.filter(f).length;
+  const tin = cnt(r => r.trippedIn > 0), disc = cnt(r => r.discretionThatDay > 0), ulv = cnt(r => r.ulvThatDay > 0);
+  const hasTrips = DATA.wfly.hasTrips;
+  $('w-kpis').innerHTML =
+    kpi('WFLY instances', fmtN(rows.length), `of ${fmtN(all.length)} · ${rangeLabel()}`) +
+    kpi('Estimated cost', cost ? fmtGBP(cost) : '—', cost ? `CP ${fmtGBP(DATA.settings.rates?.CP)} · FO ${fmtGBP(DATA.settings.rates?.FO)} per instance` : '<button class="link" onclick="openData()">Set cost rates</button>') +
+    kpi('Same-rank pilot tripped in', hasTrips ? fmtN(tin) : '—', hasTrips ? `${(tin/n*100).toFixed(0)}% · ${fmtN(cnt(r => r.trippedIn > 0 && r.trippedOut > 0))} also tripped one out` : 'load the tripping report', 'var(--trip)') +
+    kpi('Discretion used that day', fmtN(disc), `${(disc/n*100).toFixed(0)}% of instances`, 'var(--disc)') +
+    kpi('ULV granted that day', fmtN(ulv), `${(ulv/n*100).toFixed(0)}% of instances`, 'var(--ulv)');
 
-  el.innerHTML = `
-    <div class="h1">WFLY instances</div>
-    <div class="sub"><strong>${fmtN(rows.length)}</strong> of ${fmtN(all.length)} shown${cost ? ` · est. ${fmtGBP(cost)}` : ''} ·
-      <span style="color:var(--disc);">${fmtN(withDisc)} with discretion that day</span> ·
-      <span style="color:var(--ulv);">${fmtN(withUlv)} with ULV that day</span>
-      ${W.crew ? ` · crew <strong>${esc(W.crew)}</strong> only (<span class="link" onclick="W.crew=null;renderWfly()">clear</span>)` : ''}<br>
-      Click a column to sort, a crew ID to see just their instances, or a discretion / ULV number for that base and day.</div>
-    <div class="table-wrap" style="max-height:calc(100vh - 170px);"><table class="tbl">
-      <thead><tr>${cols.map(([k, l]) => `<th class="sort ${['discretionThatDay','ulvThatDay','estCost'].includes(k) ? 'r' : ''}" onclick="wSort('${k}')">${l}${arrow(k)}</th>`).join('')}</tr></thead>
-      <tbody>${tableRows || `<tr><td colspan="${cols.length}" class="empty">No instances match these filters</td></tr>`}</tbody>
-    </table></div>`;
+  const perCrew = {}; rows.forEach(r => perCrew[r.crewId] = (perCrew[r.crewId]||0) + 1);
+  $('w-sub').textContent = `${fmtN(rows.length)} shown · same base, same day context · click a number for detail`;
+  $('w-crew-chip').innerHTML = W.crew ? `<button class="fbtn active" onclick="W.crew=null;renderWfly()">Crew ${esc(W.crew)} ✕</button>` : '';
+  const sorted = rows.slice().sort((a,b) => { const av = a[W.sortKey], bv = b[W.sortKey]; return (av < bv ? -1 : av > bv ? 1 : 0) * W.sortDir; });
+  const cols = [['date','Date'],['crewId','Crew'],['base','Base'],['rank','Rank'],['activity','Activity'],['reasonCode','Reason'],
+    ['trippedIn','Tripped in',1],['trippedOut','Tripped out',1],['discretionThatDay','Discretion',1],['ulvThatDay','ULV',1],['estCost','Est. cost',1]];
+  const arrow = k => W.sortKey === k ? (W.sortDir === 1 ? ' ↑' : ' ↓') : '';
+  const numCell = (v, cls, kind, r) => v ? `<button class="num-btn ${cls}" onclick="wDetail('${kind}',${ja(r.base)},${ja(r.date)},${ja(r.rank)})">${v}</button>` : '<span class="zero">–</span>';
+  $('w-table').innerHTML = `<table class="tbl"><thead><tr>${cols.map(([k, l, num]) => `<th class="${num ? 'r' : ''}" onclick="wSort('${k}')">${l}${arrow(k)}</th>`).join('')}</tr></thead><tbody>${
+    sorted.map(r => `<tr>
+      <td>${fmtDay(r.date)}</td>
+      <td><button class="crew-btn" title="Show only this crew member" onclick="W.crew=${ja(r.crewId)};renderWfly()">${esc(r.crewId)}</button>${perCrew[r.crewId] > 1 ? `<span class="mult">×${perCrew[r.crewId]}</span>` : ''}</td>
+      <td>${esc(r.base)}</td>
+      <td><span class="tag ${esc(r.rank)}">${esc(r.rank)}</span>${r.ptCapped === 'Capped' ? '<span class="capped">PT capped</span>' : r.employment === 'Part-time' ? '<span class="capped" style="color:var(--ink3);">PT</span>' : ''}</td>
+      <td><span class="tag ${isRest(r.activity) ? 'rest' : r.activity === 'FLT' ? 'flt' : ''}">${esc(r.activity)}</span></td>
+      <td title="${esc(r.reasonDesc)}">${esc(r.reasonCode)}</td>
+      <td class="r">${hasTrips ? numCell(r.trippedIn, 'trip', 'in', r) : '<span class="zero">n/a</span>'}</td>
+      <td class="r">${hasTrips ? numCell(r.trippedOut, 'trip', 'out', r) : '<span class="zero">n/a</span>'}</td>
+      <td class="r">${numCell(r.discretionThatDay, 'disc', 'disc', r)}</td>
+      <td class="r">${numCell(r.ulvThatDay, 'ulv', 'ulv', r)}</td>
+      <td class="r">${r.estCost ? '£' + r.estCost.toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2}) : '<span class="zero">–</span>'}</td></tr>`).join('')
+    || `<tr><td colspan="${cols.length}"><div class="empty">No instances match these filters</div></td></tr>`}</tbody></table>`;
 }
-function syncRateInputs() { for (const r of ['CP','FO']) $('rate-'+r).value = DATA.settings.rates?.[r] || ''; }
+function wSort(k) { if (W.sortKey === k) W.sortDir *= -1; else { W.sortKey = k; W.sortDir = ['date','crewId','base','rank','activity','reasonCode'].includes(k) ? 1 : -1; } renderWfly(); }
+
+function wDetail(kind, base, date, rank) {
+  const D = DATA.wfly;
+  if (kind === 'in' || kind === 'out') {
+    const list = (kind === 'in' ? D.TRIP_IN : D.TRIP_OUT)[base+'|'+date+'|'+rank] || [];
+    openDP(`${base} · ${fmtDay(date)}`, `${list.length} ${rank} tripped ${kind === 'in' ? 'into' : 'out of'} ${base} that day`,
+      `<table class="mini"><tr><th>Crew</th><th>${kind === 'in' ? 'From' : 'To'}</th><th>Duty</th><th>Booked by</th></tr>${list.map(r =>
+        `<tr><td>${esc(r['Crew ID'])}</td><td>${esc(kind === 'in' ? r['Crew Base'] : r['Trip Base'])}</td><td>${esc(r['Duty'] || '')}</td><td>${esc(deptName(r._dept))}</td></tr>`).join('')}</table>`);
+  } else if (kind === 'disc') {
+    const flights = D.DISCRETION_DETAIL[base+'|'+date] || [];
+    openDP(`${base} · ${fmtDay(date)}`, `${flights.length} discretion (FDP extension) flights at this base`,
+      `<table class="mini"><tr><th>Flight</th><th>Route</th><th class="r">Ext.</th><th>Crew</th></tr>${flights.map(f =>
+        `<tr><td>${esc(f.flight)}</td><td>${esc(f.dep)}→${esc(f.arr)}</td><td class="r">${f.extMin}m</td><td style="font-size:12px;">${f.crew.map(c => esc(c.name || c.id)).join(', ')}</td></tr>`).join('')}</table>`);
+  } else {
+    const crew = D.ULV_DETAIL[base+'|'+date] || [];
+    openDP(`${base} · ${fmtDay(date)}`, `${crew.length} pilots on approved unpaid leave at this base`,
+      `<table class="mini"><tr><th>Crew ID</th><th>Rank</th></tr>${crew.map(c => `<tr><td>${esc(c.crewId)}</td><td><span class="tag ${esc(c.rank)}">${esc(c.rank)}</span></td></tr>`).join('')}</table>`);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Data panel (datasets + cost rates) & notes
+// ═══════════════════════════════════════════════════════════════════════════
+function openData() {
+  $('modal-inner').innerHTML = `
+    <h2>Data</h2>
+    <p>Files are saved to the private shared workspace and load automatically for everyone signed in. A new upload replaces the previous file of the same type.</p>
+    <div id="ds-list"></div>
+    <div class="drop" style="margin-top:14px;" onclick="pickFile('any')"><b>Upload files</b><span>Select or drop any of: All tripping · WFLY ($) crewBid · ULV · Discretion report</span></div>
+    <h3 style="font-size:14px;margin:20px 0 4px;">WFLY cost per instance</h3>
+    <p style="font-size:13px;margin-bottom:10px;">Shared setting, stored in the workspace (not in the code).</p>
+    <div class="date-row"><label>Captain (CP) £<input class="inp" id="rate-CP" type="number" min="0" step="0.01"></label><label>First Officer (FO) £<input class="inp" id="rate-FO" type="number" min="0" step="0.01"></label></div>
+    <div class="modal-acts"><button class="btn" onclick="hideModal()">Close</button><button class="btn primary" onclick="saveRates()">Save rates</button></div>`;
+  for (const r of ['CP','FO']) $('rate-'+r).value = DATA.settings.rates?.[r] || '';
+  renderDatasets();
+  $('modal-overlay').classList.add('on');
+}
 function saveRates() {
   const rates = {};
   for (const r of ['CP','FO']) { const v = parseFloat($('rate-'+r).value); if (v > 0) rates[r] = +v.toFixed(2); }
   DATA.settings = {...DATA.settings, rates};
   buildWfly();
-  renderCurrent();
+  hideModal();
+  refreshAll();
   if (Cloud.mode === 'cloud') Cloud.save('settings', JSON.stringify(DATA.settings), 'settings.json', 1).then(() => toast('Rates saved for everyone', 'ok'));
   else toast('Rates applied (this tab only)', 'ok');
 }
-function wSort(k) { if (W.sortKey === k) W.sortDir *= -1; else { W.sortKey = k; W.sortDir = 1; } renderWfly(); }
-
-function wDetail(kind, base, date) {
-  const key = base + '|' + date;
-  if (kind === 'disc') {
-    const flights = DATA.wfly.DISCRETION_DETAIL[key] || [];
-    openDP(`${base} — ${date}`, `Discretion (FDP extension) flights at this base, this day · ${flights.length}`,
-      flights.length ? `<table class="tbl"><tr><th>Flight</th><th>Route</th><th class="r">Ext.</th><th>Crew</th></tr>
-        ${flights.map(f => `<tr><td>${esc(f.flight)}</td><td>${esc(f.dep)}→${esc(f.arr)}</td><td class="r">${f.extMin}m</td><td style="font-size:11px;">${f.crew.map(c => esc(c.name || c.id)).join(', ')}</td></tr>`).join('')}</table>`
-        : '<div class="hs-empty">No flight detail in this export</div>');
-    $('dp-title').style.color = 'var(--disc)';
-  } else {
-    const crew = DATA.wfly.ULV_DETAIL[key] || [];
-    openDP(`${base} — ${date}`, `Crew on approved unpaid leave at this base, this day · ${crew.length}`,
-      crew.length ? `<table class="tbl"><tr><th>Crew ID</th><th>Rank</th></tr>${crew.map(c => `<tr><td>${esc(c.crewId)}</td><td><span class="badge ${esc(c.rank)}">${esc(c.rank)}</span></td></tr>`).join('')}</table>`
-        : '<div class="hs-empty">No crew detail in this export</div>');
-    $('dp-title').style.color = 'var(--ulv)';
-  }
+function showNotes() {
+  $('modal-inner').innerHTML = `<h2>How to read this</h2><div class="notes">
+    <h3>Tripping overlaps</h3>
+    <p>A <b>crossing</b> is a base pair where, on the same day, crew were tripped A→B <b>and</b> other crew B→A. Each red line is one pair; thicker means more overlapping moves. Use the date range, bases, rank and department filters to scope it; "More filters" holds the exclusions and the minimum number of overlap days.</p>
+    <p><b>Who booked the overlaps</b> uses the first two letters of the route code (CR Crewing, RD Roster Delivery, RP Roster Planning, TP Training Planning, TD Training Delivery, CT Crewing Training). Picking a department keeps the crossings that department contributed to.</p>
+    <h3>WFLY</h3>
+    <p>Each WFLY payment (CP/FO) is shown with what else happened at the same base that day: same-rank pilots <b>tripped in</b> or <b>out</b>, <b>discretion</b> (FDP extensions) and <b>ULV</b> (unpaid leave) granted. Click any number for the detail.</p>
+    <h3>Caveats</h3>
+    <p>These are signals to investigate, not proof — qualifications, aircraft type, duty times and FDP limits can explain any single case. Counts are trip records, not unique people. NCL pipeline, Egypt standby and Cape Verde are excluded by default.</p>
+  </div><div class="modal-acts"><button class="btn primary" onclick="hideModal()">Got it</button></div>`;
+  $('modal-overlay').classList.add('on');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Export (context-aware)
+// Export (follows the current section and filters)
 // ═══════════════════════════════════════════════════════════════════════════
 function doExport() {
   const wb = XLSX.utils.book_new();
   const add = (data, name, widths) => { const s = XLSX.utils.aoa_to_sheet(data); if (widths) s['!cols'] = widths.map(w => ({wch:w})); XLSX.utils.book_append_sheet(wb, s, name); };
   const stamp = new Date().toISOString().slice(0,10);
   if (DATA.ui.section === 'wfly') {
-    if (!DATA.meta.wflyLoaded) return toast('Load the WFLY ($) CSV first', 'err');
+    if (!DATA.meta.wflyLoaded) return toast('Load the WFLY ($) report first', 'err');
     const rows = wFiltered();
-    add([['Date','Crew ID','Country','Base','Rank','Employment','Contract cap','Discretion that day','ULV that day','Activity','Reason code','Reason','Est. cost (GBP)'],
-      ...rows.map(r => [r.date, r.crewId, r.country, r.base, r.rank, r.employment, r.ptCapped, r.discretionThatDay, r.ulvThatDay, r.activity, r.reasonCode, r.reasonDesc, +r.estCost.toFixed(2)]),
-      ['','','','','','','','','','','','TOTAL', +rows.reduce((s,r) => s + r.estCost, 0).toFixed(2)]], 'WFLY instances', [11,10,10,6,6,12,10,10,8,8,10,26,12]);
+    add([['Date','Crew ID','Country','Base','Rank','Employment','Contract cap','Activity','Reason code','Reason','Tripped in (same rank)','Tripped out (same rank)','Discretion that day','ULV that day','Est. cost (GBP)'],
+      ...rows.map(r => [r.date, r.crewId, r.country, r.base, r.rank, r.employment, r.ptCapped, r.activity, r.reasonCode, r.reasonDesc, r.trippedIn, r.trippedOut, r.discretionThatDay, r.ulvThatDay, +r.estCost.toFixed(2)])],
+      'WFLY instances', [11,10,10,6,6,11,10,8,10,30,10,10,10,8,12]);
     XLSX.writeFile(wb, `Paul_Monitoring_WFLY_${stamp}.xlsx`);
   } else {
-    if (!DATA.meta.tripsLoaded) return toast('Load a tripping CSV first', 'err');
+    if (!DATA.meta.tripsLoaded) return toast('Load the tripping report first', 'err');
     const hs = getHotspots();
-    add([['Base A','AOC A','Base B','AOC B','Overlap days','A→B moves','B→A moves','Total moves','First','Last'],
-      ...hs.map(h => { const d = [...h.dates].sort(); return [h.a, AOC_OF[h.a]||'', h.b, AOC_OF[h.b]||'', h.days, h.ab, h.ba, h.moves, d[0], d[d.length-1]]; })],
-      'Crossings', [8,8,8,8,12,10,10,11,12,12]);
+    const deptCols = [...Object.keys(DEPTS), 'OTHER', 'NONE'];
+    add([['Base A','Base B','Overlap days','A→B','B→A','Moves in scope', ...deptCols.map(deptName),'First','Last'],
+      ...hs.map(h => { const d = [...h.dates].sort(); return [h.a, h.b, h.days, h.ab, h.ba, h.moves, ...deptCols.map(c => h.depts[c] || 0), d[0], d[d.length-1]]; })],
+      'Crossings', [8,8,12,8,8,12,...deptCols.map(() => 12),12,12]);
     const keys = new Set(hs.map(h => h.k));
-    add([['Date','Base A','Base B','A→B','B→A'], ...getCrossings().filter(x => keys.has(x.a+'↔'+x.b)).sort((x,y) => x.date.localeCompare(y.date) || x.a.localeCompare(y.a)).map(x => [x.date, x.a, x.b, x.ab, x.ba])],
-      'Crossings by day', [12,8,8,6,6]);
-    const cols = ['OpsDate','Crew ID','Rank','Crew Base','Trip Base','Duty','Training / Non-Training - Desc','Route Code'];
-    const xKey = new Set(getCrossings().map(x => x.date+'|'+x.a+'|'+x.b));
-    const overlapRecs = DATA.trips.filtered.filter(r => { const a = r['Crew Base'], b = r['Trip Base']; return xKey.has(r._date+'|'+(a<b?a:b)+'|'+(a<b?b:a)); });
-    add([['Date', ...cols], ...overlapRecs.map(r => [r._date, ...cols.map(c => r[c]||'')])], 'Overlap trip records');
-    XLSX.writeFile(wb, `Paul_Monitoring_Tripping_Overlaps_${$('f-month').value}_${stamp}.xlsx`);
+    const xs = getCrossings().filter(x => keys.has(x.a+'↔'+x.b));
+    add([['Date','Base A','Base B','A→B','B→A'], ...xs.slice().sort((x,y) => x.date.localeCompare(y.date)).map(x => [x.date, x.a, x.b, x.ab, x.ba])], 'Crossings by day', [12,8,8,6,6]);
+    add([['Date','Crew ID','Rank','Crew base','Trip base','Duty','Training / Non-Training','Route code','Department'],
+      ...xs.flatMap(x => x.trips.map(r => [r._date, r['Crew ID'], r['Rank'], r['Crew Base'], r['Trip Base'], r['Duty']||'', r['Training / Non-Training - Desc']||'', r['Route Code']||'', deptName(r._dept)]))],
+      'Overlap trip records');
+    XLSX.writeFile(wb, `Paul_Monitoring_Tripping_Overlaps_${stamp}.xlsx`);
   }
   toast('Export complete', 'ok');
 }
@@ -1570,26 +1644,32 @@ function doExport() {
 function showTooltip(ev, title, rows) {
   const t = $('tt');
   $('tt-t').textContent = title;
-  $('tt-b').innerHTML = rows.map(([k,v]) => `<div class="tt-r"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('');
+  const b = $('tt-b'); b.textContent = '';
+  for (const [k, v] of rows) {
+    const row = document.createElement('div'); row.className = 'tt-r';
+    const a = document.createElement('span'); a.textContent = k;
+    const c = document.createElement('span'); c.textContent = v;
+    row.append(a, c); b.append(row);
+  }
   t.style.display = 'block';
-  t.style.left = Math.min(ev.clientX + 12, innerWidth - t.offsetWidth - 8) + 'px';
-  t.style.top = Math.min(ev.clientY - 8, innerHeight - t.offsetHeight - 8) + 'px';
+  t.style.left = Math.min(ev.clientX + 14, innerWidth - t.offsetWidth - 8) + 'px';
+  t.style.top = Math.min(ev.clientY + 14, innerHeight - t.offsetHeight - 8) + 'px';
 }
 function hideTooltip() { $('tt').style.display = 'none'; }
 function showError(msg) {
   const safe = /<(br|code)>/.test(msg) ? msg : esc(msg);
-  $('modal-inner').innerHTML = `<h2 style="color:var(--neg);">Cannot load file</h2><p>The file did not match an expected format.</p><div class="schema-err">${safe}</div><div class="modal-acts"><button class="mbtn go" onclick="hideModal()">Close</button></div>`;
+  $('modal-inner').innerHTML = `<h2>Couldn't load that file</h2><p>It didn't match one of the expected reports.</p><div class="schema-err">${safe}</div><div class="modal-acts"><button class="btn primary" onclick="hideModal()">Close</button></div>`;
   $('modal-overlay').classList.add('on');
 }
 function hideModal() { $('modal-overlay').classList.remove('on'); }
 function showWelcome() {
   $('modal-inner').innerHTML = `
-    <h2>Paul Monitoring Dashboard</h2>
+    <h2>Welcome</h2>
     ${Cloud.mode === 'cloud'
-      ? `<p><strong>The shared workspace is empty.</strong> Upload the files once and they're saved for everyone signed in — colleagues won't need to upload anything; it loads automatically for them.</p>`
-      : `<p style="color:var(--neg);"><strong>Can't reach the shared storage</strong>${Cloud.initError ? ' (' + esc(Cloud.initError) + ')' : ''}. You can still explore files, but they'll stay in this tab only and colleagues won't see them.</p>`}
-    <div class="drop" onclick="pickFile('any')"><div class="drop-t">↑ Load files</div><div class="drop-s">Select or drop any of: All tripping CSV · WFLY ($) crewBid CSV · ULV report · Discretion report. Types are detected automatically.</div></div>
-    <div class="modal-acts"><button class="mbtn" onclick="hideModal()">Close</button></div>`;
+      ? `<p><b>The shared workspace is empty.</b> Upload the reports once and they're saved for everyone signed in — colleagues won't need to upload anything.</p>`
+      : `<p style="color:var(--neg);"><b>Can't reach the shared storage</b>${Cloud.initError ? ' (' + esc(Cloud.initError) + ')' : ''}. You can still explore files, but they'll stay in this tab only.</p>`}
+    <div class="drop" onclick="pickFile('any')"><b>Upload files</b><span>All tripping · WFLY ($) crewBid · ULV · Discretion report — types are detected automatically</span></div>
+    <div class="modal-acts"><button class="btn" onclick="hideModal()">Close</button></div>`;
   $('modal-overlay').classList.add('on');
 }
 let toastTimer;
@@ -1599,13 +1679,14 @@ function toast(msg, kind='') {
 }
 let appShown = false;
 function setLoading(msg) { $('load-txt').textContent = msg; $('loading').classList.toggle('soft', appShown); $('loading').style.display = 'flex'; }
-function clearLoading() { $('loading').style.display = 'none'; $('app').style.display = 'grid'; appShown = true; }
+function clearLoading() { $('loading').style.display = 'none'; $('app').style.display = 'flex'; appShown = true; }
 
 let resizeRaf = 0;
-window.addEventListener('resize', () => { cancelAnimationFrame(resizeRaf); resizeRaf = requestAnimationFrame(() => { if (['arc','map'].includes(DATA.ui.view)) renderCurrent(); }); });
+window.addEventListener('resize', () => { cancelAnimationFrame(resizeRaf); resizeRaf = requestAnimationFrame(() => { closePops(); renderChart(); }); });
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  if ($('modal-overlay').classList.contains('on')) hideModal();
+  if (openPop) closePops();
+  else if ($('modal-overlay').classList.contains('on')) hideModal();
   else if ($('dp').classList.contains('on')) closeDP(true);
 });
 $('modal-overlay').addEventListener('click', e => { if (e.target.id === 'modal-overlay') hideModal(); });
@@ -1618,7 +1699,6 @@ window.addEventListener('beforeunload', e => { if (Cloud.state === 'saving') { e
 async function boot() {
   restorePrefs();
   buildBaseGrid();
-  renderDatasets();
   setLoading('Connecting to workspace…');
   const manifest = await Cloud.init();
   if (manifest?.datasets?.settings) {
@@ -1637,12 +1717,11 @@ async function boot() {
       toast(`Couldn't load saved ${KINDS[kind].label}: ${e.message}`, 'err');
     }
   }
-  if (DATA.meta.tripsLoaded) initMonthSelect();
+  if (DATA.src.wfly) buildWfly();
+  initDeptSelect();
   wBuildActs();
-  syncRateInputs();
-  applyFilters();
-  renderDatasets();
   clearLoading();
+  setView(DATA.ui.view);
   setSection(DATA.ui.section);
   if (!DATA.meta.tripsLoaded && !DATA.meta.wflyLoaded) showWelcome();
 }
