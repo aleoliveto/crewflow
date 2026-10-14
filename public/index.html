@@ -1183,6 +1183,7 @@ function initDeptSelect() {
 // ═══════════════════════════════════════════════════════════════════════════
 function refreshAll() {
   savePrefs();
+  mapZoom = d3.zoomIdentity;
   $('fb-date-v').textContent = rangeLabel();
   $('fb-date').classList.toggle('active', DATA.ui.range.preset !== 'all');
   $('fb-bases-v').textContent = basesLabel();
@@ -1403,6 +1404,7 @@ function edgeTooltipRows(e) {
 }
 function renderChart() {
   const svg = d3.select('#cv'); svg.selectAll('*').remove();
+  svg.on('.zoom', null).on('dblclick', null);   // zoom/pan only applies to the map view
   const box = $('cv').getBoundingClientRect(), W = box.width, H = box.height;
   if (!W || DATA.ui.section !== 'trips') return;
   const msg = t => svg.append('text').attr('x', W/2).attr('y', H/2).attr('text-anchor','middle').attr('fill', C.ink3).attr('font-size', 14).text(t);
@@ -1438,7 +1440,8 @@ function drawNode(g, code, p, r, cross, labelPos) {
   ng.append('text').attr('text-anchor','middle').attr('dy','0.35em').attr('font-size', r > 15 ? 11 : 10).attr('font-weight', 600)
     .attr('fill', isSel ? '#fff' : col).text(code);
   if (labelPos) ng.append('text').attr('x', labelPos.x).attr('y', labelPos.y).attr('text-anchor', labelPos.anchor).attr('dy','0.35em')
-    .attr('font-size', 11.5).attr('fill', C.ink2).text(apName(code).replace('London ', ''));
+    .attr('font-size', 11.5).attr('fill', C.ink2).attr('stroke', '#fff').attr('stroke-width', 3.5).attr('stroke-linejoin', 'round').attr('paint-order', 'stroke')
+    .text(apName(code).replace('London ', ''));
   ng.on('mousemove', ev => showTooltip(ev, `${code} — ${apName(code)}`, baseTooltipRows(code, cross))).on('mouseleave', hideTooltip);
 }
 function drawNetwork(svg, W, H, edges, cross) {
@@ -1455,20 +1458,49 @@ function drawNetwork(svg, W, H, edges, cross) {
     drawNode(g, b, P[b], 18, cross, {x: Math.cos(la)*28, y: Math.sin(la)*28, anchor});
   });
 }
+// Country outlines (Natural Earth, public domain) served from this site; loaded once on first use
+let BASEMAP = null, basemapLoading = null;
+function loadBasemap() {
+  return basemapLoading ||= fetch('/basemap.json', {credentials:'same-origin'}).then(r => r.ok ? r.json() : null)
+    .then(j => { BASEMAP = j; return j; }).catch(() => null);
+}
+let mapZoom = d3.zoomIdentity;
 function drawMap(svg, W, H, edges, cross) {
+  if (!BASEMAP) loadBasemap().then(j => { if (j && DATA.ui.view === 'map') renderChart(); });
   const nodes = [...new Set(edges.flatMap(e => [e.a, e.b]))];
-  const lats = nodes.map(c => AP[c].lat), lons = nodes.map(c => AP[c].lon);
-  const minLat = Math.min(...lats), maxLat = Math.max(...lats), minLon = Math.min(...lons), maxLon = Math.max(...lons);
-  const pad = 50;
-  // equirectangular with latitude correction so shapes aren't squashed
-  const kx = Math.cos((minLat + maxLat) / 2 * Math.PI / 180);
-  const spanX = (maxLon - minLon) * kx || 1, spanY = (maxLat - minLat) || 1;
-  const s = Math.min((W - 2*pad) / spanX, (H - 2*pad) / spanY);
-  const ox = (W - spanX * s) / 2, oy = (H - spanY * s) / 2;
-  const pos = c => ({x: ox + (AP[c].lon - minLon) * kx * s, y: oy + (maxLat - AP[c].lat) * s});
-  const g = svg.append('g');
-  drawEdges(g, edges, pos, 0.2, 60, Math.max(...cross.map(e => e.n), 1));
-  nodes.forEach(c => drawNode(g, c, pos(c), 13, cross, null));
+  const proj = d3.geoMercator().fitExtent([[60, 50], [W - 60, H - 40]], {type:'MultiPoint', coordinates: nodes.map(c => [AP[c].lon, AP[c].lat])});
+  const geo = d3.geoPath(proj);
+  const base = c => { const [x, y] = proj([AP[c].lon, AP[c].lat]); return {x, y}; };
+
+  svg.append('rect').attr('width', W).attr('height', H).attr('fill', '#e8f0f6');                 // sea
+  const world = svg.append('g');                                                                 // zoomable layer
+  if (BASEMAP) {
+    world.append('g').selectAll('path').data(BASEMAP.features).join('path')
+      .attr('d', geo).attr('fill', '#fbfaf8').attr('stroke', '#c9ced6').attr('stroke-width', 0.7).attr('vector-effect', 'non-scaling-stroke');
+  }
+  const edgeLayer = world.append('g');
+  drawEdges(edgeLayer, edges, base, 0.18, 60, Math.max(...cross.map(e => e.n), 1));
+  edgeLayer.selectAll('path').attr('vector-effect', 'non-scaling-stroke');
+
+  // Nodes live outside the scaled layer so they stay the same size when zoomed
+  const nodeLayer = svg.append('g');
+  // City names appear once zoomed in, when there's room for them
+  const place = t => nodeLayer.selectAll('g.node').attr('transform', function () { const p = t.apply([+this.dataset.x, +this.dataset.y]); return `translate(${p[0]},${p[1]})`; })
+    .selectAll('text:nth-of-type(2)').attr('opacity', t.k >= 2.2 ? 1 : 0);
+  nodes.forEach(c => { drawNode(nodeLayer, c, base(c), 13, cross, {x: 0, y: 24, anchor: 'middle'}); });
+  nodeLayer.selectAll(':scope > g').classed('node', true).each(function (_, i) { const p = base(nodes[i]); this.dataset.x = p.x; this.dataset.y = p.y; });
+
+  const zoom = d3.zoom().scaleExtent([1, 10]).translateExtent([[0, 0], [W, H]]).extent([[0, 0], [W, H]])
+    .on('zoom', ev => { mapZoom = ev.transform; world.attr('transform', ev.transform); place(ev.transform); hideTooltip(); });
+  svg.call(zoom).on('dblclick.zoom', null);
+  place(d3.zoomIdentity);
+  svg.call(zoom.transform, mapZoom);
+
+  const hint = svg.append('g').attr('transform', `translate(${W - 16},${H - 14})`);
+  hint.append('text').attr('text-anchor', 'end').attr('font-size', 11.5).attr('fill', C.ink3)
+    .text(BASEMAP ? 'Scroll to zoom · drag to pan · double-click to reset' : 'Loading map…');
+  svg.on('dblclick', () => svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity));
+  if (BASEMAP) svg.append('text').attr('x', 12).attr('y', H - 12).attr('font-size', 10).attr('fill', C.ink3).text('Map: Natural Earth');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

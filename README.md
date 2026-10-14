@@ -57,3 +57,5 @@ npx netlify dev
 ```
 
 Opening `public/index.html` directly also works in "local only" mode (nothing is saved).
+
+Map outlines: `public/basemap.json`, derived from [Natural Earth](https://www.naturalearthdata.com/) (public domain) via `world-atlas`.
