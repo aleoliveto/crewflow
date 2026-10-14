@@ -5,20 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Paul Monitoring Dashboard</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234338ca'/%3E%3Cpath d='M8 21c4-10 12-10 16 0' stroke='%23fff' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23ff6600'/%3E%3Cpath d='M8 21c4-10 12-10 16 0' stroke='%23fff' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root {
-  --bg:#f4f6f9; --s1:#ffffff; --s2:#f1f3f7; --s3:#e7ebf1;
-  --b1:#e8ebf0; --b2:#dbe0e8; --b3:#b8c1ce;
-  --txt:#1d2433; --mut:#5b6678; --mut2:#8b95a5;
-  --ezy:#4338ca; --ezy-dim:#3730a3;
-  --uk:#1d6fd6; --eu:#0e8a7a; --ch:#b86e00;
-  --cross:#d43b3b; --disc:#7045c8; --ulv:#0a87a3;
-  --pos:#15803d; --neg:#d43b3b; --warn:#c2570c;
-  --shadow:0 1px 2px rgba(16,24,40,0.06), 0 1px 3px rgba(16,24,40,0.04);
+  /* easyJet palette: orange #FF6600 on white, charcoal text */
+  --bg:#f5f5f5; --s1:#ffffff; --s2:#f4f4f4; --s3:#eaeaea;
+  --b1:#ececec; --b2:#dedede; --b3:#bdbdbd;
+  --txt:#2b2b2b; --mut:#666666; --mut2:#9a9a9a;
+  --ezy:#ff6600; --ezy-dim:#e65c00;
+  --uk:#1f6fc5; --eu:#0d8a7d; --ch:#7a5af5;
+  --cross:#c8102e; --disc:#7a5af5; --ulv:#0b8aa6;
+  --pos:#2e8540; --neg:#c8102e; --warn:#d35400;
+  --shadow:0 1px 2px rgba(0,0,0,0.05), 0 1px 4px rgba(0,0,0,0.04);
   --fh:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
   --fm:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
 }
@@ -36,11 +37,11 @@ button,input,select{font-family:inherit;}
 .brand{display:flex;align-items:center;gap:10px;padding:0 20px;height:100%;border-right:1px solid var(--b1);flex-shrink:0;}
 .brand-ezy{color:var(--ezy);}
 .brand-cf{font-family:var(--fh);font-weight:700;font-size:16px;letter-spacing:-0.01em;white-space:nowrap;}
-.brand-mark{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,var(--ezy),#6d63e8);flex-shrink:0;}
+.brand-mark{width:22px;height:22px;border-radius:6px;background:var(--ezy);flex-shrink:0;}
 .sections{display:flex;gap:2px;padding:0 10px;border-right:1px solid var(--b1);height:100%;align-items:center;}
 .sec-btn{font-size:13px;font-weight:500;padding:7px 14px;border-radius:6px;border:1px solid transparent;background:none;color:var(--mut);cursor:pointer;white-space:nowrap;}
 .sec-btn:hover{color:var(--txt);background:var(--s2);}
-.sec-btn.on{color:var(--ezy);border-color:rgba(67,56,202,0.4);background:rgba(67,56,202,0.08);}
+.sec-btn.on{color:var(--ezy);border-color:rgba(255,102,0,0.4);background:rgba(255,102,0,0.08);}
 .tabs{display:flex;align-items:stretch;flex:1;overflow-x:auto;scrollbar-width:none;height:100%;}
 .tabs::-webkit-scrollbar{display:none;}
 .tab{font-size:12px;padding:0 14px;height:100%;border:none;cursor:pointer;color:var(--mut);background:none;white-space:nowrap;display:flex;align-items:center;gap:6px;border-bottom:2px solid transparent;transition:all 0.15s;}
@@ -84,7 +85,7 @@ button,input,select{font-family:inherit;}
 .aoc-pill:hover{border-color:var(--b3);}
 .aoc-pill.uk.on{background:rgba(91,156,246,0.12);border-color:rgba(91,156,246,0.45);color:var(--uk);}
 .aoc-pill.eu.on{background:rgba(45,212,191,0.12);border-color:rgba(45,212,191,0.45);color:var(--eu);}
-.aoc-pill.ch.on{background:rgba(245,158,11,0.12);border-color:rgba(245,158,11,0.45);color:var(--ch);}
+.aoc-pill.ch.on{background:rgba(122,90,245,0.1);border-color:rgba(122,90,245,0.4);color:var(--ch);}
 .inp{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:4px;color:var(--txt);padding:5px 8px;font-size:12px;outline:none;}
 .inp:focus{border-color:var(--b3);}
 .base-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;max-height:110px;overflow-y:auto;margin-top:6px;}
@@ -93,7 +94,7 @@ button,input,select{font-family:inherit;}
 .base-chip.on{color:var(--txt);}
 .base-chip.on.uk{background:rgba(91,156,246,0.13);border-color:rgba(91,156,246,0.38);}
 .base-chip.on.eu{background:rgba(45,212,191,0.1);border-color:rgba(45,212,191,0.33);}
-.base-chip.on.ch{background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.33);}
+.base-chip.on.ch{background:rgba(122,90,245,0.08);border-color:rgba(122,90,245,0.3);}
 .base-acts{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-top:6px;}
 .mini-btn{padding:4px 2px;border-radius:5px;border:1px solid var(--b2);background:var(--s1);color:var(--mut);font-size:12.5px;cursor:pointer;}
 .mini-btn:hover{color:var(--txt);border-color:var(--b2);}
@@ -151,7 +152,7 @@ button,input,select{font-family:inherit;}
 .sub strong{color:var(--txt);font-weight:500;}
 .empty{color:var(--mut);padding:24px;text-align:center;font-size:12.5px;}
 .drop{border:1px dashed var(--b2);border-radius:7px;padding:26px;cursor:pointer;text-align:center;}
-.drop:hover{border-color:var(--ezy);background:rgba(67,56,202,0.03);}
+.drop:hover{border-color:var(--ezy);background:rgba(255,102,0,0.03);}
 .drop-t{color:var(--mut);font-size:12.5px;}
 .drop-s{color:var(--mut2);font-size:11px;margin-top:4px;}
 
@@ -186,9 +187,9 @@ button,input,select{font-family:inherit;}
 .matrix td:first-child,.matrix th:first-child{text-align:left;position:sticky;left:0;background:var(--s1);}
 .flag{color:var(--warn);font-weight:600;}
 .badge{display:inline-block;font-size:11px;padding:1px 6px;border-radius:3px;background:var(--s2);color:var(--mut);}
-.badge.CP{background:rgba(245,158,11,0.15);color:var(--ch);}
+.badge.CP{background:rgba(255,102,0,0.12);color:#c45200;}
 .badge.FO{background:rgba(91,156,246,0.15);color:var(--uk);}
-.badge.rest{background:rgba(251,146,60,0.14);color:var(--warn);}
+.badge.rest{background:rgba(200,16,46,0.08);color:var(--cross);}
 .badge.flt{background:rgba(52,211,153,0.12);color:var(--pos);}
 .cnt{font-size:11px;font-weight:600;color:var(--warn);background:rgba(251,146,60,0.12);border-radius:8px;padding:0 5px;margin-left:5px;}
 .cell-btn{background:none;border:none;color:var(--txt);cursor:pointer;font-size:12.5px;padding:0;font-weight:500;}
@@ -199,7 +200,7 @@ button,input,select{font-family:inherit;}
 .zero{color:var(--mut2);}
 .repeat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;}
 .rc{border:1px solid var(--b2);border-radius:5px;padding:8px 10px;cursor:pointer;background:var(--s1);text-align:left;color:var(--txt);}
-.rc:hover,.rc.on{border-color:var(--ezy);background:rgba(67,56,202,0.06);}
+.rc:hover,.rc.on{border-color:var(--ezy);background:rgba(255,102,0,0.06);}
 .rc-meta{font-size:11px;color:var(--mut);margin-top:2px;}
 .cmp-row{display:grid;grid-template-columns:54px 1fr;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--b1);}
 .cmp-bars{display:flex;flex-direction:column;gap:2px;}
@@ -484,7 +485,7 @@ const AP = {
   RAK:{n:'Marrakech',lat:31.607,lon:-8.036},
 };
 
-const aocHex = b => AOC_OF[b]==='UK' ? '#1d6fd6' : AOC_OF[b]==='Europe' ? '#0e8a7a' : AOC_OF[b]==='Swiss' ? '#b86e00' : '#5b6678';
+const aocHex = b => AOC_OF[b]==='UK' ? '#1f6fc5' : AOC_OF[b]==='Europe' ? '#0d8a7d' : AOC_OF[b]==='Swiss' ? '#7a5af5' : '#666666';
 const aocCls = b => ({UK:'uk', Europe:'eu', Swiss:'ch'})[AOC_OF[b]] || '';
 const apName = c => (AP[c] || {n:c}).n;
 
@@ -1235,11 +1236,26 @@ function svgSize(viewId, svg) {
   return {W, H};
 }
 function emptySvg(svg, W, H, msg) {
-  svg.append('text').attr('x',W/2).attr('y',H/2).attr('text-anchor','middle').attr('fill','#5b6678').attr('font-family','Inter').attr('font-size',14).text(msg);
+  svg.append('text').attr('x',W/2).attr('y',H/2).attr('text-anchor','middle').attr('fill','#666666').attr('font-family','Inter').attr('font-size',14).text(msg);
+}
+// Human label for the current tripping filter scope (shown in graph subtitles and tooltips)
+function scopeLabel() {
+  const m = $('f-month').value, r = $('f-rank');
+  const parts = [m === 'all' ? 'All months' : fmtMonth(m)];
+  if (r.value !== 'all') parts.push(r.options[r.selectedIndex].text);
+  if (DATA.ui.bases.size !== ALL_BASES.length) parts.push(DATA.ui.bases.size + ' bases');
+  return parts.join(' · ');
+}
+// Per-base totals for the current filters: all trips out/in, plus moves that are part of a crossing
+function baseTooltipRows(b, cross) {
+  const {out, inn} = getBaseCounts();
+  const touching = cross.filter(e => e.a === b || e.b === b);
+  return [['Period', scopeLabel()], ['AOC', AOC_OF[b] || 'Other'], ['Trips out (all)', fmtN(out[b] || 0)], ['Trips in (all)', fmtN(inn[b] || 0)],
+          ['Overlapping moves', fmtN(touching.reduce((s, e) => s + e.n, 0))], ['Crossing pairs', touching.length]];
 }
 function svgTitle(svg, title, sub) {
-  svg.append('text').attr('x',16).attr('y',22).attr('font-family','Inter').attr('font-size',15).attr('font-weight',600).attr('fill','#1d2433').text(title);
-  svg.append('text').attr('x',16).attr('y',38).attr('font-family','Inter').attr('font-size',11).attr('fill','#5b6678').text(sub);
+  svg.append('text').attr('x',16).attr('y',22).attr('font-family','Inter').attr('font-size',15).attr('font-weight',600).attr('fill','#2b2b2b').text(title);
+  svg.append('text').attr('x',16).attr('y',38).attr('font-family','Inter').attr('font-size',11).attr('fill','#666666').text(sub);
 }
 // Edges to draw: every crossing pair, plus (optionally) faded non-overlapping flows between the same bases
 function graphEdges() {
@@ -1293,9 +1309,9 @@ function renderArc() {
       path.attr('stroke', aocHex(e.a)).attr('stroke-width', 0.8).attr('stroke-opacity', sel ? 0.03 : 0.12);
       return;
     }
-    path.attr('stroke', '#d43b3b').attr('stroke-width', sw(e.n) + (isSel ? 2 : 0))
+    path.attr('stroke', '#c8102e').attr('stroke-width', sw(e.n) + (isSel ? 2 : 0))
       .attr('stroke-opacity', isSel ? 0.95 : sel ? 0.12 : 0.25 + 0.6 * e.n / maxN).attr('cursor','pointer')
-      .on('mousemove', ev => showTooltip(ev, `${e.a} ↔ ${e.b}`, [['Overlap days', e.days], [`${e.a}→${e.b}`, e.ab], [`${e.b}→${e.a}`, e.ba], ['AOC', (AOC_OF[e.a]||'Other')+' ↔ '+(AOC_OF[e.b]||'Other')]]))
+      .on('mousemove', ev => showTooltip(ev, `${e.a} ↔ ${e.b}`, [['Period', scopeLabel()], ['Overlap days', e.days], [`${e.a}→${e.b}`, e.ab], [`${e.b}→${e.a}`, e.ba], ['AOC', (AOC_OF[e.a]||'Other')+' ↔ '+(AOC_OF[e.b]||'Other')]]))
       .on('mouseleave', hideTooltip)
       .on('click', () => pickCross(e.a, e.b));
   });
@@ -1304,18 +1320,15 @@ function renderArc() {
     const p = pos[b], col = aocHex(b), isX = crossBases.has(b);
     const isSel = sel && (sel.a === b || sel.b === b);
     const ng = g.append('g').attr('transform', `translate(${p.x},${p.y})`);
-    ng.append('circle').attr('r', 19).attr('fill', isSel ? col : '#ffffff').attr('stroke', isX ? '#d43b3b' : col).attr('stroke-width', isSel ? 2.5 : 1.5).attr('stroke-opacity', isX ? 1 : 0.5);
+    ng.append('circle').attr('r', 19).attr('fill', isSel ? col : '#ffffff').attr('stroke', isX ? '#c8102e' : col).attr('stroke-width', isSel ? 2.5 : 1.5).attr('stroke-opacity', isX ? 1 : 0.5);
     ng.append('text').attr('text-anchor','middle').attr('dy','0.35em').attr('font-family','Inter').attr('font-size',11).attr('font-weight',500)
       .attr('fill', isSel ? '#ffffff' : col).text(b);
     const la = p.angle, anchor = Math.cos(la) > 0.1 ? 'start' : Math.cos(la) < -0.1 ? 'end' : 'middle';
     ng.append('text').attr('x', Math.cos(la)*30).attr('y', Math.sin(la)*30).attr('text-anchor', anchor).attr('dy','0.35em')
-      .attr('font-family','Inter').attr('font-size',11).attr('fill','#5b6678').text(apName(b).replace('London ',''));
-    ng.on('mousemove', ev => {
-      const o = outCnt[b]||0, i = inCnt[b]||0;
-      showTooltip(ev, b+' — '+apName(b), [['AOC', AOC_OF[b]||'Other'], ['Out', o], ['In', i], ['Crossing pairs', cross.filter(e => e.a===b || e.b===b).length]]);
-    }).on('mouseleave', hideTooltip);
+      .attr('font-family','Inter').attr('font-size',11).attr('fill','#666666').text(apName(b).replace('London ',''));
+    ng.on('mousemove', ev => showTooltip(ev, b+' — '+apName(b), baseTooltipRows(b, cross))).on('mouseleave', hideTooltip);
   });
-  svgTitle(svg, 'Overlapping crew movement', `${fmtN(cross.length)} crossing pairs · ${fmtN(cross.reduce((s,e) => s+e.n, 0))} moves where crew went both ways on the same day`);
+  svgTitle(svg, 'Overlapping crew movement', `${scopeLabel()} · ${fmtN(cross.length)} crossing pairs · ${fmtN(cross.reduce((s,e) => s+e.n, 0))} moves where crew went both ways on the same day`);
 }
 
 function renderMap() {
@@ -1347,8 +1360,8 @@ function renderMap() {
     const path = g.append('path').attr('d', `M${p1.x},${p1.y} Q${mx+nx},${my+ny} ${p2.x},${p2.y}`).attr('fill','none');
     if (!e.cross) { path.attr('stroke', aocHex(e.a)).attr('stroke-width', 0.8).attr('stroke-opacity', sel ? 0.03 : 0.12); return; }
     const isSel = sel && sel.k === e.k, w = 1 + Math.sqrt(e.n/maxN) * 10;
-    path.attr('stroke','#d43b3b').attr('stroke-width', isSel ? w+2 : w).attr('stroke-opacity', isSel ? 0.9 : sel ? 0.12 : 0.6).attr('cursor','pointer')
-      .on('mousemove', ev => showTooltip(ev, `${e.a} ↔ ${e.b}`, [['Overlap days', e.days], [`${e.a}→${e.b}`, e.ab], [`${e.b}→${e.a}`, e.ba]]))
+    path.attr('stroke','#c8102e').attr('stroke-width', isSel ? w+2 : w).attr('stroke-opacity', isSel ? 0.9 : sel ? 0.12 : 0.6).attr('cursor','pointer')
+      .on('mousemove', ev => showTooltip(ev, `${e.a} ↔ ${e.b}`, [['Period', scopeLabel()], ['Overlap days', e.days], [`${e.a}→${e.b}`, e.ab], [`${e.b}→${e.a}`, e.ba]]))
       .on('mouseleave', hideTooltip)
       .on('click', () => pickCross(e.a, e.b));
   });
@@ -1358,12 +1371,12 @@ function renderMap() {
     const isSel = sel && (sel.a === code || sel.b === code);
     const ng = g.append('g').attr('transform', `translate(${p.x},${p.y})`);
     if (isX) ng.append('circle').attr('r', 18).attr('fill','none').attr('stroke','rgba(248,113,113,0.25)');
-    ng.append('circle').attr('r', 14).attr('fill', isSel ? col : '#ffffff').attr('stroke', isX ? '#d43b3b' : col).attr('stroke-width', 1.5);
+    ng.append('circle').attr('r', 14).attr('fill', isSel ? col : '#ffffff').attr('stroke', isX ? '#c8102e' : col).attr('stroke-width', 1.5);
     ng.append('text').attr('text-anchor','middle').attr('dy','0.35em').attr('font-family','Inter').attr('font-size',10).attr('font-weight',500).attr('fill', isSel ? '#ffffff' : col).text(code);
-    ng.on('mousemove', ev => { const o = outCnt[code]||0, i = inCnt[code]||0; showTooltip(ev, code+' — '+info.n, [['AOC', AOC_OF[code]||'Other'], ['Out', o], ['In', i]]); })
+    ng.on('mousemove', ev => showTooltip(ev, code+' — '+info.n, baseTooltipRows(code, cross)))
       .on('mouseleave', hideTooltip);
   });
-  svgTitle(svg, 'Overlap map', `${fmtN(cross.length)} crossing routes · click a red route for the dates`);
+  svgTitle(svg, 'Overlap map', `${scopeLabel()} · ${fmtN(cross.length)} crossing routes · click a red route for the dates`);
 }
 
 function renderNotes() {
