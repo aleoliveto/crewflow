@@ -336,7 +336,7 @@ svg text{pointer-events:none;user-select:none;}
   <div class="pop" id="pop-more" style="width:340px;">
     <div class="pop-sec">
       <div class="pop-title">Exclude known patterns</div>
-      <div class="toggle-row"><div>NCL pipeline<div class="sub">NCL→LGW FO training</div></div><label class="sw"><input type="checkbox" id="f-ncl" checked onchange="refreshAll()"><span></span></label></div>
+      <div class="toggle-row"><div>Base pipelines<div class="sub">NCL→LGW FO training · trips to/from RAK (new base)</div></div><label class="sw"><input type="checkbox" id="f-ncl" checked onchange="refreshAll()"><span></span></label></div>
       <div class="toggle-row"><div>Egypt standby<div class="sub">SSH / HRG hotel standby</div></div><label class="sw"><input type="checkbox" id="f-eg" checked onchange="refreshAll()"><span></span></label></div>
       <div class="toggle-row"><div>Cape Verde<div class="sub">SID scheduled</div></div><label class="sw"><input type="checkbox" id="f-cv" checked onchange="refreshAll()"><span></span></label></div>
       <div class="toggle-row"><div>Training flights<div class="sub">All training duties</div></div><label class="sw"><input type="checkbox" id="f-tr" onchange="refreshAll()"><span></span></label></div>
@@ -439,7 +439,22 @@ const TRAINING_TRIPS = new Set(['Training Flight','Training + Non-Training Fligh
 // Department that booked a trip = first two letters of the route code
 const DEPTS = {CR:'Crewing', RD:'Roster Delivery', RP:'Roster Planning', TP:'Training Planning', TD:'Training Delivery', CT:'Crewing Training'};
 const deptOf = routeCode => { const p = (routeCode || '').trim().slice(0,2).toUpperCase(); return !p ? 'NONE' : DEPTS[p] ? p : 'OTHER'; };
-const deptName = d => DEPTS[d] || (d === 'NONE' ? 'No route code' : 'Other route codes');
+const deptName = d => DEPTS[d] || (d === 'NONE' ? 'No route code' : 'Base-coded flights');
+// Non-department route codes are base flights: the first character identifies the base (W = LGW, X = MXP, …).
+// Confirmed letters are fixed; the rest are inferred from the trip base each letter most often goes to.
+const KNOWN_CODE_BASE = {W:'LGW', X:'MXP'};
+let CODE_BASE = {...KNOWN_CODE_BASE};
+function inferCodeBases(recs) {
+  const by = {};
+  for (const r of recs) {
+    if (r._dept !== 'OTHER') continue;
+    const c = (r['Route Code'] || '').trim().charAt(0).toUpperCase();
+    ((by[c] ||= {})[r['Trip Base']] ||= 0); by[c][r['Trip Base']]++;
+  }
+  CODE_BASE = {...Object.fromEntries(Object.entries(by).map(([c, m]) => [c, Object.entries(m).sort((a,b) => b[1]-a[1])[0][0]])), ...KNOWN_CODE_BASE};
+}
+const codeLetter = r => (r['Route Code'] || '').trim().charAt(0).toUpperCase();
+const codeLabel = c => `${c}${CODE_BASE[c] ? ' · ' + CODE_BASE[c] + (KNOWN_CODE_BASE[c] ? '' : ' (likely)') : ''}`;
 
 const AP = {
   LGW:{n:'London Gatwick',lat:51.148,lon:-0.190},LTN:{n:'London Luton',lat:51.874,lon:-0.368},
@@ -1152,6 +1167,7 @@ function filterBaseChips(q) {
   });
 }
 function initDeptSelect() {
+  inferCodeBases(DATA.trips.raw);
   const counts = {};
   DATA.trips.raw.forEach(r => counts[r._dept] = (counts[r._dept] || 0) + 1);
   const order = [...Object.keys(DEPTS), 'OTHER', 'NONE'].filter(d => counts[d]);
@@ -1204,7 +1220,8 @@ function applyFilters() {
       const tr = r['Training / Non-Training - Desc'] || '';
       if (!inRange(r._date, rg)) return false;
       if (!bases.has(cb) && !bases.has(tb)) return false;
-      if (excNCL && cb==='NCL' && tb==='LGW' && rk==='FO' && tr==='Training Flight') return false;
+      // Base pipelines: NCL→LGW FO training, and crew tripped to/from RAK while the new base is staffed up
+      if (excNCL && ((cb==='NCL' && tb==='LGW' && rk==='FO' && tr==='Training Flight') || cb==='RAK' || tb==='RAK')) return false;
       if (excEg && (tb==='SSH' || tb==='HRG')) return false;
       if (excCV && tb==='SID') return false;
       if (excTr && TRAINING_TRIPS.has(tr)) return false;
@@ -1315,7 +1332,7 @@ function renderTrips() {
   const rows = Object.entries(dt).sort((a,b) => b[1]-a[1]);
   const max = Math.max(1, ...rows.map(r => r[1]));
   $('dept-bars').innerHTML = rows.map(([d, n]) => `
-    <button class="bar ${dsel === d ? 'on' : dsel !== 'all' ? 'dim' : ''}" onclick="setDept(${ja(d)})" title="${esc(deptName(d))}: ${fmtN(n)} moves (${pct(n, dtTotal)}%)">
+    <button class="bar ${dsel === d ? 'on' : dsel !== 'all' ? 'dim' : ''}" onclick="setDept(${ja(d)})" title="${esc(deptName(d))}: ${fmtN(n)} moves (${pct(n, dtTotal)}%)${d === 'OTHER' ? ' — first letter of the route code is the base, e.g. ' + esc(Object.keys(CODE_BASE).slice(0, 8).map(codeLabel).join(', ')) : ''}">
       <span>${esc(deptName(d))}</span><span class="bar-t"><span class="bar-f" style="display:block;width:${n/max*100}%"></span></span><span class="bar-n">${fmtN(n)}</span>
     </button>`).join('') || '<div class="empty" style="padding:10px;">No overlaps in scope</div>';
   renderChart();
@@ -1333,12 +1350,15 @@ function pickCross(a, b) {
   const depts = {};
   rel.forEach(x => Object.entries(x.depts).forEach(([dep, n]) => depts[dep] = (depts[dep] || 0) + n));
   const tot = rel.reduce((s,x) => s + x.ab + x.ba, 0);
+  const letters = {};
+  rel.forEach(x => x.trips.forEach(r => { if (r._dept === 'OTHER') { const c = codeLetter(r); letters[c] = (letters[c] || 0) + 1; } }));
+  const letterRows = Object.entries(letters).sort((x,y) => y[1]-x[1]).map(([c, n]) => `<tr><td style="padding-left:14px;color:var(--ink2);">↳ ${esc(codeLabel(c))}</td><td class="r">${n}</td><td class="r" style="color:var(--ink3);">${pct(n, tot)}%</td></tr>`).join('');
   openDP(`${a} ↔ ${b}`, `${rel.length} overlap days · ${tot} moves · ${scopeLabel()}`, `
     <h4>Booked by</h4>
-    <table class="mini">${Object.entries(depts).sort((x,y) => y[1]-x[1]).map(([dep, n]) => `<tr><td>${esc(deptName(dep))}</td><td class="r">${n}</td><td class="r" style="color:var(--ink3);">${pct(n, tot)}%</td></tr>`).join('')}</table>
+    <table class="mini">${Object.entries(depts).sort((x,y) => y[1]-x[1]).map(([dep, n]) => `<tr><td>${esc(deptName(dep))}</td><td class="r">${n}</td><td class="r" style="color:var(--ink3);">${pct(n, tot)}%</td></tr>` + (dep === 'OTHER' ? letterRows : '')).join('')}</table>
     <h4>By day</h4>
     <table class="mini"><tr><th>Date</th><th class="r">${esc(a)}→${esc(b)}</th><th class="r">${esc(b)}→${esc(a)}</th><th>Departments</th></tr>
-    ${rel.map(x => `<tr><td>${fmtDay(x.date)}</td><td class="r">${x.ab}</td><td class="r">${x.ba}</td><td style="font-size:12px;color:var(--ink2);">${Object.keys(x.depts).map(dep => DEPTS[dep] ? dep : dep === 'NONE' ? '—' : 'other').join(', ')}</td></tr>`).join('')}</table>`);
+    ${rel.map(x => `<tr><td>${fmtDay(x.date)}</td><td class="r">${x.ab}</td><td class="r">${x.ba}</td><td style="font-size:12px;color:var(--ink2);">${[...new Set(x.trips.map(r => r._dept === 'OTHER' ? codeLetter(r) + '-code' : DEPTS[r._dept] ? r._dept : '—'))].join(', ')}</td></tr>`).join('')}</table>`);
 }
 function openDP(title, sub, body) {
   $('dp-title').textContent = title; $('dp-sub').textContent = sub; $('dp-body').innerHTML = body;
@@ -1597,11 +1617,11 @@ function showNotes() {
   $('modal-inner').innerHTML = `<h2>How to read this</h2><div class="notes">
     <h3>Tripping overlaps</h3>
     <p>A <b>crossing</b> is a base pair where, on the same day, crew were tripped A→B <b>and</b> other crew B→A. Each red line is one pair; thicker means more overlapping moves. Use the date range, bases, rank and department filters to scope it; "More filters" holds the exclusions and the minimum number of overlap days.</p>
-    <p><b>Who booked the overlaps</b> uses the first two letters of the route code (CR Crewing, RD Roster Delivery, RP Roster Planning, TP Training Planning, TD Training Delivery, CT Crewing Training). Picking a department keeps the crossings that department contributed to.</p>
+    <p><b>Who booked the overlaps</b> uses the start of the route code: CR Crewing, RD Roster Delivery, RP Roster Planning, TP Training Planning, TD Training Delivery, CT Crewing Training. Any other code is a <b>base-coded flight</b>, where the first character is the base (W = LGW, X = MXP, …). Picking a department keeps the crossings that department contributed to.</p>
     <h3>WFLY</h3>
     <p>Each WFLY payment (CP/FO) is shown with what else happened at the same base that day: same-rank pilots <b>tripped in</b> or <b>out</b>, <b>discretion</b> (FDP extensions) and <b>ULV</b> (unpaid leave) granted. Click any number for the detail.</p>
     <h3>Caveats</h3>
-    <p>These are signals to investigate, not proof — qualifications, aircraft type, duty times and FDP limits can explain any single case. Counts are trip records, not unique people. NCL pipeline, Egypt standby and Cape Verde are excluded by default.</p>
+    <p>These are signals to investigate, not proof — qualifications, aircraft type, duty times and FDP limits can explain any single case. Counts are trip records, not unique people. Base pipelines (NCL→LGW FO training and trips to/from the new RAK base), Egypt standby and Cape Verde are excluded by default.</p>
   </div><div class="modal-acts"><button class="btn primary" onclick="hideModal()">Got it</button></div>`;
   $('modal-overlay').classList.add('on');
 }
