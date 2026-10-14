@@ -441,8 +441,9 @@ const DEPTS = {CR:'Crewing', RD:'Roster Delivery', RP:'Roster Planning', TP:'Tra
 const deptOf = routeCode => { const p = (routeCode || '').trim().slice(0,2).toUpperCase(); return !p ? 'NONE' : DEPTS[p] ? p : 'OTHER'; };
 const deptName = d => DEPTS[d] || (d === 'NONE' ? 'No route code' : 'Base-coded flights');
 // Non-department route codes are base flights: the first character identifies the base (W = LGW, X = MXP, …).
-// Confirmed letters are fixed; the rest are inferred from the trip base each letter most often goes to.
-const KNOWN_CODE_BASE = {W:'LGW', X:'MXP'};
+// Confirmed by the crewing team; any other character falls back to the base it most often goes to in the data
+const KNOWN_CODE_BASE = {W:'LGW', X:'MXP', C:'CDG', H:'MAN', I:'LIN', K:'AMS', L:'LTN', R:'ORY', S:'BER', Y:'LYS', D:'EDI',
+  '1':'BCN', '2':'PMI', '3':'NAP', '4':'NTE', '5':'BHX', '6':'LTN', '7':'RAK', '8':'MAN'};
 let CODE_BASE = {...KNOWN_CODE_BASE};
 function inferCodeBases(recs) {
   const by = {};
@@ -1617,7 +1618,7 @@ function showNotes() {
   $('modal-inner').innerHTML = `<h2>How to read this</h2><div class="notes">
     <h3>Tripping overlaps</h3>
     <p>A <b>crossing</b> is a base pair where, on the same day, crew were tripped A→B <b>and</b> other crew B→A. Each red line is one pair; thicker means more overlapping moves. Use the date range, bases, rank and department filters to scope it; "More filters" holds the exclusions and the minimum number of overlap days.</p>
-    <p><b>Who booked the overlaps</b> uses the start of the route code: CR Crewing, RD Roster Delivery, RP Roster Planning, TP Training Planning, TD Training Delivery, CT Crewing Training. Any other code is a <b>base-coded flight</b>, where the first character is the base (W = LGW, X = MXP, …). Picking a department keeps the crossings that department contributed to.</p>
+    <p><b>Who booked the overlaps</b> uses the start of the route code: CR Crewing, RD Roster Delivery, RP Roster Planning, TP Training Planning, TD Training Delivery, CT Crewing Training. Any other code is a <b>base-coded flight</b>, where the first character is the base (W = LGW, X = MXP, L = LTN, C = CDG, H = MAN, …). Picking a department keeps the crossings that department contributed to.</p>
     <h3>WFLY</h3>
     <p>Each WFLY payment (CP/FO) is shown with what else happened at the same base that day: same-rank pilots <b>tripped in</b> or <b>out</b>, <b>discretion</b> (FDP extensions) and <b>ULV</b> (unpaid leave) granted. Click any number for the detail.</p>
     <h3>Caveats</h3>
