@@ -11,7 +11,7 @@ Uploaded files are saved to a private, shared workspace (Netlify Blobs), so they
 
 ## Data files
 
-Load via **↑ Load files** or drag onto the window — the type is detected automatically and several can be loaded at once. A new upload of the same type replaces the old one.
+Load via **Data → Upload files** or drag onto the window — the type is detected automatically and several can be loaded at once. Uploads **add up**: every file is kept and the files of a type are merged by date. Where files overlap, the most recently uploaded file is used for those dates (no double counting), and a file fully covered by a newer upload is dropped automatically. Individual files can be removed from the Data panel.
 
 | Report | Recognised by |
 | --- | --- |

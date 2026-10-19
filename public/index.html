@@ -505,7 +505,7 @@ const DATA = {
   wfly: null,                              // joined view model built by buildWfly()
   settings: {rates:{}},                    // shared settings (cost per WFLY by rank) — kept in the workspace, not in code
   ui: {section:'trips', view:'arc', bases:new Set(ALL_BASES), selection:null, range:{preset:'all', from:null, to:null}},
-  meta: {tripsLoaded:false, wflyLoaded:false, files:{}}
+  meta: {tripsLoaded:false, wflyLoaded:false}
 };
 let MEMO = new Map();
 const memo = (k, fn) => { if (!MEMO.has(k)) MEMO.set(k, fn()); return MEMO.get(k); };
@@ -689,6 +689,7 @@ function parseUlv(text) {
   const rows = parseCSVText(text, ',').map(r => r.map(c => c.trim()));
   const period = text.match(/(\d{2})\/(\d{2})\/(\d{4})\s*-\s*(\d{2})\/(\d{2})\/(\d{4})/);
   if (!period) throw new Error('Could not find the report period (dd/mm/yyyy-dd/mm/yyyy) in the ULV file.');
+  const periodRange = {from: ymd(+period[3], +period[2], +period[1]), to: ymd(+period[6], +period[5], +period[4])};
   let year = +period[3], lastMonth = +period[2];
   const out = [];
   for (let i = 1; i < rows.length; i++) {
@@ -717,6 +718,7 @@ function parseUlv(text) {
     }
   }
   if (!out.length) throw new Error('No ULV days found. Expected the Crew Schedule Statistics "GROUND DUTIES:ULV" export.');
+  out.period = periodRange;   // the report covers every day of its period, even days with no ULV
   return out;
 }
 
@@ -829,8 +831,43 @@ const KINDS = {
   disc:  {label:'Discretion', parse:parseDisc,  set:recs => { DATA.src.disc = recs; buildWfly(); }},
 };
 
+// ── Multi-file datasets ─────────────────────────────────────────────────────
+// Every upload is kept as its own file. The files of a type are merged by date: where files
+// overlap, the most recently uploaded file wins for those dates, so re-exports never double-count.
+const dateOfRow = (kind, r) => kind === 'trips' ? r._date : r.date;
+function coverage(kind, rows) {
+  if (rows.period) return rows.period;
+  let from = null, to = null;
+  for (const r of rows) { const d = dateOfRow(kind, r); if (!d) continue; if (!from || d < from) from = d; if (!to || d > to) to = d; }
+  return {from, to};
+}
+const PARTS = {trips: [], wfly: [], ulv: [], disc: []};
+let partSeq = 0;
+function mergeParts(kind) {
+  // newest first: unsaved local uploads, then by upload time
+  const parts = PARTS[kind].slice().sort((a, b) => (b.order - a.order));
+  const claimed = [], out = [];
+  for (const p of parts) {
+    let used = 0;
+    for (const r of p.rows) {
+      const d = dateOfRow(kind, r);
+      if (claimed.some(c => d >= c.from && d <= c.to)) continue;
+      out.push(r); used++;
+    }
+    p.used = used;
+    if (p.from && p.to) claimed.push({from: p.from, to: p.to});
+  }
+  if (PARTS[kind].some(p => p.rows.period)) out.period = PARTS[kind].reduce((acc, p) => ({from: !acc.from || p.from < acc.from ? p.from : acc.from, to: !acc.to || p.to > acc.to ? p.to : acc.to}), {});
+  return out;
+}
+function applyKind(kind) {
+  const merged = mergeParts(kind);
+  KINDS[kind].set(merged.length ? merged : null);
+}
+const covers = (a, b) => a.from && a.to && b.from && b.to && a.from <= b.from && a.to >= b.to;
+
 // ═══════════════════════════════════════════════════════════════════════════
-// Cloud — shared workspace in Netlify Blobs (/api/data). Datasets are stored gzip'd
+// Cloud — shared workspace in Netlify Blobs (/api/data). Files are stored gzip'd
 // in ≤3 MB chunks and re-parsed on load.
 // ═══════════════════════════════════════════════════════════════════════════
 const CHUNK_BYTES = 3 * 1024 * 1024;
@@ -855,25 +892,33 @@ const Cloud = {
     try {
       const res = await this.api('');
       if (!(res.headers.get('content-type') || '').includes('json')) throw new Error('no api');
-      this.manifest = await res.json();
+      this.setManifest(await res.json());
       this.mode = 'cloud';
     } catch (e) { this.mode = 'local'; this.manifest = null; this.initError = e.message; console.error('Workspace storage unavailable:', e); }
     this.renderStatus();
     return this.manifest;
   },
-  datasets() { return this.manifest?.datasets || {}; },
-  async fetchText(kind) {
-    const ds = this.datasets()[kind], parts = [];
-    for (let i = 0; i < ds.chunks; i++) parts.push(await (await this.api(`?kind=${kind}&chunk=${i}`)).arrayBuffer());
+  setManifest(m) {
+    // accept the older one-file-per-type layout too
+    for (const [k, ds] of Object.entries(m?.datasets || {})) if (ds && !Array.isArray(ds.files)) m.datasets[k] = {files: ds.uploadId ? [ds] : []};
+    this.manifest = m;
+  },
+  files(kind) { return this.manifest?.datasets?.[kind]?.files || []; },
+  async fetchFile(kind, f) {
+    const parts = [];
+    for (let i = 0; i < f.chunks; i++) parts.push(await (await this.api(`?kind=${kind}&upload=${f.uploadId}&chunk=${i}`)).arrayBuffer());
     return gunzip(parts);
   },
-  save(kind, text, name, records) {
-    if (this.mode !== 'cloud') return Promise.resolve();
-    this.queue = this.queue.then(() => this._save(kind, text, name, records));
+  // job: {kind, text, name, records, from, to, supersedes, part}
+  save(job) {
+    if (this.mode !== 'cloud') return Promise.resolve(null);
+    this.queue = this.queue.then(() => this._save(job));
     return this.queue;
   },
-  async _save(kind, text, name, records) {
+  async _save(job) {
+    const {kind, text, name, records} = job;
     const label = KINDS[kind]?.label || 'Settings';
+    const key = job.part ? job.part.id : kind;
     try {
       this.setStatus('saving', `Saving ${label}…`);
       const gz = await gzip(text);
@@ -884,38 +929,44 @@ const Cloud = {
         await this.api(`?kind=${kind}&upload=${upload}&chunk=${i}`, {method:'PUT',
           headers:{'content-type':'application/octet-stream'}, body: gz.slice(i*CHUNK_BYTES, (i+1)*CHUNK_BYTES)});
       }
+      // files this upload fully covers are dropped server-side in the same write
+      const supersedes = (job.supersedes || []).map(p => p.uploadId).filter(Boolean);
       const res = await this.api(`?kind=${kind}&upload=${upload}&commit=1`, {method:'POST',
-        headers:{'content-type':'application/json'}, body: JSON.stringify({chunks:n, name, records, bytes:text.length})});
-      this.manifest = await res.json();
-      delete this.pending[kind];
-      if (DATA.meta.files[kind]) DATA.meta.files[kind].savedAt = this.datasets()[kind]?.uploadedAt;
+        headers:{'content-type':'application/json'}, body: JSON.stringify({chunks:n, name, records, bytes:text.length, from: job.from, to: job.to, supersedes})});
+      this.setManifest(await res.json());
+      delete this.pending[key];
+      const saved = this.files(kind).find(f => f.uploadId === upload);
+      if (job.part && saved) { job.part.uploadId = upload; job.part.uploadedAt = saved.uploadedAt; }
       renderDatasets();
       this.setStatus(Object.keys(this.pending).length ? 'error' : 'ok');
-      if (kind !== 'settings') toast(`${label} saved to the shared workspace`, 'ok');
+      if (kind !== 'settings') toast(`${name} saved to the shared workspace`, 'ok');
+      return saved;
     } catch (e) {
       console.error(e);
-      this.pending[kind] = {text, name, records};
+      this.pending[key] = job;
       this.setStatus('error');
       renderDatasets();
-      toast(`Couldn't save ${label}: ${e.message}`, 'err');
+      toast(`Couldn't save ${name || label}: ${e.message}`, 'err');
+      return null;
     }
   },
-  async remove(kind) {
+  async remove(kind, uploadId) {
     if (this.mode !== 'cloud') return;
-    this.manifest = await (await this.api(`?kind=${kind}`, {method:'DELETE'})).json();
-    delete this.pending[kind];
-    this.setStatus('ok');
+    this.setManifest(await (await this.api(`?kind=${kind}` + (uploadId ? `&upload=${uploadId}` : ''), {method:'DELETE'})).json());
+    this.setStatus(Object.keys(this.pending).length ? 'error' : 'ok');
+  },
+  signature(m) {
+    return [...Object.keys(KINDS), 'settings'].map(k => (m?.datasets?.[k]?.files || (m?.datasets?.[k]?.uploadId ? [m.datasets[k]] : [])).map(f => f.uploadId).sort().join(',')).join('|');
   },
   async checkForUpdates() {
     if (this.mode !== 'cloud' || this.state === 'saving') return;
     try {
       const latest = await (await this.api('')).json();
-      const mine = this.datasets();
-      if ([...Object.keys(KINDS), 'settings'].some(k => (latest.datasets?.[k]?.uploadId || null) !== (mine[k]?.uploadId || null)) && this.state !== 'saving') this.setStatus('stale');
+      if (this.signature(latest) !== this.signature(this.manifest) && this.state !== 'saving') this.setStatus('stale');
     } catch {}
   },
   onStatusClick() {
-    if (this.state === 'error') for (const [k, p] of Object.entries(this.pending)) this.save(k, p.text, p.name, p.records);
+    if (this.state === 'error') for (const job of Object.values(this.pending)) this.save(job);
     else if (this.state === 'stale') location.reload();
   },
   setStatus(state, text) { this.state = state; this.statusText = text || ''; this.renderStatus(); },
@@ -947,15 +998,23 @@ async function loadFile(file, forcedKind) {
     try { kind = detectKind(text); } catch (e) { if (!kind) throw e; }
     setLoading(`Parsing ${KINDS[kind].label}…`);
     await nextFrame();
-    const parsed = KINDS[kind].parse(text);
-    KINDS[kind].set(parsed);
-    const n = parsed.length;
-    DATA.meta.files[kind] = {name: file.name, records: n, savedAt: null};
+    const rows = KINDS[kind].parse(text);
+    const {from, to} = coverage(kind, rows);
+    const part = {id: 'local-' + (++partSeq), name: file.name, rows, from, to, uploadedAt: null, order: Date.now() + partSeq};
+    // older files whose dates this upload fully covers add nothing any more — drop them
+    const superseded = PARTS[kind].filter(p => covers(part, p));
+    const overlapped = PARTS[kind].filter(p => !superseded.includes(p) && p.from && p.to && from && to && p.from <= to && p.to >= from);
+    PARTS[kind] = PARTS[kind].filter(p => !superseded.includes(p)).concat(part);
+    applyKind(kind);
     afterDataChange(kind);
     if (!$('ds-list')) hideModal();
     setSection(kind === 'trips' ? 'trips' : 'wfly');
-    toast(`Loaded ${fmtN(n)} ${KINDS[kind].label} rows from ${file.name}`, 'ok');
-    Cloud.save(kind, text, file.name, n);
+    const span = from && to ? ` (${fmtDay(from)} – ${fmtDay(to)})` : '';
+    const note = superseded.length ? ` · replaced ${superseded.length} older file${superseded.length > 1 ? 's' : ''} it fully covers`
+      : overlapped.length ? ' · newer data used where dates overlap' : ' · added to existing data';
+    toast(`${KINDS[kind].label}: ${fmtN(rows.length)} rows${span}${note}`, 'ok');
+    for (const p of superseded) if (Cloud.pending[p.id]) delete Cloud.pending[p.id];
+    Cloud.save({kind, text, name: file.name, records: rows.length, from, to, supersedes: superseded, part});
   } catch (e) {
     console.error(e);
     showError(e.message);
@@ -971,38 +1030,58 @@ function afterDataChange(kind) {
   renderDatasets();
 }
 
-function clearDataset(kind) {
+function clearDataset(kind, partId) {
   const shared = Cloud.mode === 'cloud';
+  const p = partId ? PARTS[kind].find(x => x.id === partId) : null;
+  const what = p ? `“${esc(p.name)}”` : `all ${esc(KINDS[kind].label)} files`;
   $('modal-inner').innerHTML = `
-    <h2>Remove ${esc(KINDS[kind].label)} data?</h2>
-    <p>${shared ? 'This removes it from the <strong>shared workspace</strong> for everyone.' : 'This clears it from this tab.'} You can upload it again at any time.</p>
-    <div class="modal-acts"><button class="mbtn" onclick="hideModal()">Cancel</button><button class="mbtn danger" onclick="confirmClear(${ja(kind)})">Remove</button></div>`;
+    <h2>Remove ${what}?</h2>
+    <p>${shared ? 'This removes it from the <strong>shared workspace</strong> for everyone.' : 'This clears it from this tab.'}${p ? ' Data from the other files stays.' : ''} You can upload it again at any time.</p>
+    <div class="modal-acts"><button class="btn" onclick="openData()">Cancel</button><button class="btn primary" style="background:var(--neg);border-color:var(--neg);" onclick="confirmClear(${ja(kind)}, ${p ? ja(p.id) : 'null'})">Remove</button></div>`;
   $('modal-overlay').classList.add('on');
 }
-async function confirmClear(kind) {
-  hideModal();
+async function confirmClear(kind, partId) {
   try {
-    await Cloud.remove(kind);
-    KINDS[kind].set(null);
-    delete DATA.meta.files[kind];
+    if (partId) {
+      const p = PARTS[kind].find(x => x.id === partId);
+      if (p?.uploadId) await Cloud.remove(kind, p.uploadId);
+      delete Cloud.pending[partId];
+      PARTS[kind] = PARTS[kind].filter(x => x.id !== partId);
+    } else {
+      await Cloud.remove(kind);
+      for (const p of PARTS[kind]) delete Cloud.pending[p.id];
+      PARTS[kind] = [];
+    }
+    applyKind(kind);
     afterDataChange(kind);
-    toast(`${KINDS[kind].label} data removed`, 'ok');
+    openData();
+    toast(partId ? 'File removed' : `${KINDS[kind].label} data removed`, 'ok');
   } catch (e) { toast('Could not remove: ' + e.message, 'err'); }
 }
 
 function renderDatasets() {
   if (!$('ds-list')) return;
   $('ds-list').innerHTML = Object.entries(KINDS).map(([kind, k]) => {
-    const f = DATA.meta.files[kind];
-    if (!f) return `<div class="ds-row"><span class="ds-dot"></span>
-      <div class="ds-info"><div class="ds-name">${k.label}</div><div class="ds-meta">Not loaded</div></div>
-      <button class="ds-btn" onclick="pickFile('${kind}')" title="Load">↑</button></div>`;
-    const saved = Cloud.mode === 'cloud' && f.savedAt;
-    const status = saved ? 'saved ' + fmtWhen(f.savedAt) : Cloud.mode === 'cloud' ? (Cloud.pending[kind] ? 'not saved' : 'saving…') : 'this tab only';
-    return `<div class="ds-row" title="${esc(f.name)}"><span class="ds-dot ${saved ? 'on' : 'local'}"></span>
-      <div class="ds-info"><div class="ds-name">${k.label}</div><div class="ds-meta">${fmtN(f.records)} rows · ${esc(status)}</div></div>
-      <button class="ds-btn" onclick="pickFile('${kind}')" title="Replace">↑</button>
-      <button class="ds-btn del" onclick="clearDataset('${kind}')" title="Remove">✕</button></div>`;
+    const parts = PARTS[kind].slice().sort((a, b) => (a.from || '').localeCompare(b.from || ''));
+    const head = parts.length
+      ? (() => { const f = parts.reduce((m, p) => !m || (p.from && p.from < m) ? p.from : m, null), t = parts.reduce((m, p) => !m || (p.to && p.to > m) ? p.to : m, null);
+          return `${fmtN(parts.reduce((s, p) => s + (p.used ?? p.rows.length), 0))} rows · ${f ? fmtDay(f) + ' – ' + fmtDay(t) : ''} · ${parts.length} file${parts.length > 1 ? 's' : ''}`; })()
+      : 'Not loaded';
+    const rows = parts.map(p => {
+      const saved = Cloud.mode === 'cloud' && p.uploadedAt;
+      const status = saved ? 'saved ' + fmtWhen(p.uploadedAt) : Cloud.mode === 'cloud' ? (Cloud.pending[p.id] ? 'not saved — click status to retry' : 'saving…') : 'this tab only';
+      const partial = p.used !== undefined && p.used < p.rows.length ? ` · ${fmtN(p.rows.length - p.used)} rows replaced by newer files` : '';
+      return `<div class="ds-row" style="padding:6px 0 6px 18px;" title="${esc(p.name)}"><span class="ds-dot ${saved ? 'on' : 'local'}"></span>
+        <div class="ds-info"><div style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.name)}</div>
+        <div class="ds-meta" style="white-space:normal;">${p.from ? fmtDay(p.from) + ' – ' + fmtDay(p.to) + ' · ' : ''}${fmtN(p.rows.length)} rows · ${esc(status)}${partial}</div></div>
+        <button class="ds-btn del" onclick="clearDataset('${kind}', ${ja(p.id)})" title="Remove this file">✕</button></div>`;
+    }).join('');
+    return `<div style="padding:10px 0;border-top:1px solid var(--line);">
+      <div class="ds-row" style="padding:0;"><span class="ds-dot ${parts.length ? 'on' : ''}"></span>
+        <div class="ds-info"><div class="ds-name">${k.label}</div><div class="ds-meta">${head}</div></div>
+        <button class="ds-btn" onclick="pickFile('${kind}')" title="Add a ${esc(k.label)} file">＋</button>
+        ${parts.length > 1 ? `<button class="ds-btn del" onclick="clearDataset('${kind}')" title="Remove all ${esc(k.label)} files">✕</button>` : ''}</div>
+      ${rows}</div>`;
   }).join('');
 }
 
@@ -1625,7 +1704,7 @@ function wDetail(kind, base, date, rank) {
 function openData() {
   $('modal-inner').innerHTML = `
     <h2>Data</h2>
-    <p>Files are saved to the private shared workspace and load automatically for everyone signed in. A new upload replaces the previous file of the same type.</p>
+    <p>Files are saved to the private shared workspace and load automatically for everyone signed in. <b>Uploads add up</b>: each file is kept, and where two files cover the same dates the most recently uploaded one is used for those dates. A file that's fully covered by a newer upload is removed automatically.</p>
     <div id="ds-list"></div>
     <div class="drop" style="margin-top:14px;" onclick="pickFile('any')"><b>Upload files</b><span>Select or drop any of: All tripping · WFLY ($) crewBid · ULV · Discretion report</span></div>
     <h3 style="font-size:14px;margin:20px 0 4px;">WFLY cost per instance</h3>
@@ -1643,7 +1722,7 @@ function saveRates() {
   buildWfly();
   hideModal();
   refreshAll();
-  if (Cloud.mode === 'cloud') Cloud.save('settings', JSON.stringify(DATA.settings), 'settings.json', 1).then(() => toast('Rates saved for everyone', 'ok'));
+  if (Cloud.mode === 'cloud') Cloud.save({kind: 'settings', text: JSON.stringify(DATA.settings), name: 'settings.json', records: 1}).then(ok => ok && toast('Rates saved for everyone', 'ok'));
   else toast('Rates applied (this tab only)', 'ok');
 }
 function showNotes() {
@@ -1754,21 +1833,25 @@ async function boot() {
   buildBaseGrid();
   setLoading('Connecting to workspace…');
   const manifest = await Cloud.init();
-  if (manifest?.datasets?.settings) {
-    try { DATA.settings = {rates:{}, ...JSON.parse(await Cloud.fetchText('settings'))}; } catch (e) { console.error(e); }
+  const settings = Cloud.files('settings').slice(-1)[0];
+  if (settings) {
+    try { DATA.settings = {rates:{}, ...JSON.parse(await Cloud.fetchFile('settings', settings))}; } catch (e) { console.error(e); }
   }
   for (const kind of Object.keys(KINDS)) {
-    const ds = manifest?.datasets?.[kind];
-    if (!ds) continue;
-    try {
-      setLoading(`Loading ${KINDS[kind].label} · ${ds.name}…`);
-      const parsed = KINDS[kind].parse(await Cloud.fetchText(kind));
-      KINDS[kind].set(parsed);
-      DATA.meta.files[kind] = {name: ds.name, records: parsed.length, savedAt: ds.uploadedAt};
-    } catch (e) {
-      console.error(e);
-      toast(`Couldn't load saved ${KINDS[kind].label}: ${e.message}`, 'err');
+    const files = Cloud.files(kind);
+    for (const [i, f] of files.entries()) {
+      try {
+        setLoading(`Loading ${KINDS[kind].label}${files.length > 1 ? ` (${i + 1}/${files.length})` : ''} · ${f.name}…`);
+        const rows = KINDS[kind].parse(await Cloud.fetchFile(kind, f));
+        const cov = coverage(kind, rows);
+        PARTS[kind].push({id: f.uploadId, uploadId: f.uploadId, name: f.name, rows, from: f.from || cov.from, to: f.to || cov.to,
+          uploadedAt: f.uploadedAt, order: Date.parse(f.uploadedAt) || i});
+      } catch (e) {
+        console.error(e);
+        toast(`Couldn't load saved ${KINDS[kind].label} file ${f.name}: ${e.message}`, 'err');
+      }
     }
+    if (PARTS[kind].length) applyKind(kind);
   }
   if (DATA.src.wfly) buildWfly();
   initDeptSelect();
