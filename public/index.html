@@ -1651,8 +1651,8 @@ function renderWfly() {
     kpi('WFLY instances', fmtN(rows.length), `of ${fmtN(all.length)} · ${rangeLabel()}`) +
     kpi('Estimated cost', cost ? fmtGBP(cost) : '—', cost ? `CP ${fmtGBP(DATA.settings.rates?.CP)} · FO ${fmtGBP(DATA.settings.rates?.FO)} per instance` : '<button class="link" onclick="openData()">Set cost rates</button>') +
     kpi('Same-rank pilot tripped in', hasTrips ? fmtN(tin) : '—', hasTrips ? `${(tin/n*100).toFixed(0)}% · ${fmtN(cnt(r => r.trippedIn > 0 && r.trippedOut > 0))} also tripped one out` : 'load the tripping report', 'var(--trip)') +
-    kpi('Discretion used that day', fmtN(disc), `${(disc/n*100).toFixed(0)}% of instances`, 'var(--disc)') +
-    kpi('ULV granted that day', fmtN(ulv), `${(ulv/n*100).toFixed(0)}% of instances`, 'var(--ulv)');
+    kpi('Discretion used for selected period', fmtN(disc), `${(disc/n*100).toFixed(0)}% of instances`, 'var(--disc)') +
+    kpi('ULV granted for selected period', fmtN(ulv), `${(ulv/n*100).toFixed(0)}% of instances`, 'var(--ulv)');
 
   const perCrew = {}; rows.forEach(r => perCrew[r.crewId] = (perCrew[r.crewId]||0) + 1);
   $('w-sub').textContent = `${fmtN(rows.length)} shown · same base, same day context · click a number for detail`;
