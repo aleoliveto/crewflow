@@ -732,7 +732,7 @@ function parseDisc(text) {
   for (const r of rows.slice(hi+1)) {
     const date = parseDate(r[0]);
     if (!date || !r[1]) continue;
-    out.push({date, flight: r[1], dep: (r[2]||'').toUpperCase(), arr: (r[3]||'').toUpperCase(), extMin: mins(r[6]), id: r[7] || '', name: (r[8] || '').replace(/\s+/g, ' ')});
+    out.push({date, flight: r[1], dep: (r[2]||'').toUpperCase(), arr: (r[3]||'').toUpperCase(), extMin: mins(r[6]), id: r[7] || ''});
   }
   if (!out.length) throw new Error('No discretion rows found.');
   return out;
@@ -753,7 +753,7 @@ function buildWfly() {
       discEvents[k] = {date: d.date, flight: d.flight, dep: d.dep, arr: d.arr, extMin: d.extMin, base, crew: []};
     }
     const e = discEvents[k];
-    e.crew.push({id: d.id, name: d.name});
+    e.crew.push({id: d.id});
   }
   const discList = Object.values(discEvents);
   for (const e of discList) {
@@ -812,6 +812,21 @@ function buildWfly() {
       ...matrix((S.ulv || []).filter(u => PILOT_RANKS.has(u.rank)), ulvByBase)} : null,
   };
   DATA.meta.wflyLoaded = true;
+}
+
+// ── Privacy: crew names are removed before anything is parsed or saved ───────
+// The ULV and discretion exports carry a crew name next to the crew ID; only the ID is kept.
+const csvCell = c => /[",\r\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c;
+function scrubNames(kind, text) {
+  if (kind !== 'ulv' && kind !== 'disc') return text;
+  const rows = parseCSVText(text, ',');
+  if (kind === 'ulv') {
+    for (const r of rows) if (/^\d+$/.test((r[0] || '').trim()) && r.length > 2) r[1] = '';           // ID, Name, Base/AC/Pos …
+  } else {
+    const hi = rows.findIndex(r => (r[0] || '').trim() === 'DATE' && (r[1] || '').trim() === 'Flight');
+    for (let i = hi + 1; hi >= 0 && i < rows.length; i++) if (rows[i].length > 8) rows[i][8] = '';   // … ID, Name
+  }
+  return rows.map(r => r.map(csvCell).join(',')).join('\r\n');
 }
 
 function detectKind(text) {
@@ -993,9 +1008,10 @@ async function onFilesPicked(input) { const fs = [...input.files]; input.value =
 async function loadFile(file, forcedKind) {
   setLoading('Reading ' + file.name + '…');
   try {
-    const text = decodeBytes(new Uint8Array(await file.arrayBuffer()));
+    const raw = decodeBytes(new Uint8Array(await file.arrayBuffer()));
     let kind = forcedKind;
-    try { kind = detectKind(text); } catch (e) { if (!kind) throw e; }
+    try { kind = detectKind(raw); } catch (e) { if (!kind) throw e; }
+    const text = scrubNames(kind, raw);
     setLoading(`Parsing ${KINDS[kind].label}…`);
     await nextFrame();
     const rows = KINDS[kind].parse(text);
@@ -1690,7 +1706,7 @@ function wDetail(kind, base, date, rank) {
     const flights = D.DISCRETION_DETAIL[base+'|'+date] || [];
     openDP(`${base} · ${fmtDay(date)}`, `${flights.length} discretion (FDP extension) flights at this base`,
       `<table class="mini"><tr><th>Flight</th><th>Route</th><th class="r">Ext.</th><th>Crew</th></tr>${flights.map(f =>
-        `<tr><td>${esc(f.flight)}</td><td>${esc(f.dep)}→${esc(f.arr)}</td><td class="r">${f.extMin}m</td><td style="font-size:12px;">${f.crew.map(c => esc(c.name || c.id)).join(', ')}</td></tr>`).join('')}</table>`);
+        `<tr><td>${esc(f.flight)}</td><td>${esc(f.dep)}→${esc(f.arr)}</td><td class="r">${f.extMin}m</td><td style="font-size:12px;">${f.crew.map(c => esc(c.id)).join(', ')}</td></tr>`).join('')}</table>`);
   } else {
     const crew = D.ULV_DETAIL[base+'|'+date] || [];
     openDP(`${base} · ${fmtDay(date)}`, `${crew.length} pilots on approved unpaid leave at this base`,
@@ -1704,7 +1720,7 @@ function wDetail(kind, base, date, rank) {
 function openData() {
   $('modal-inner').innerHTML = `
     <h2>Data</h2>
-    <p>Files are saved to the private shared workspace and load automatically for everyone signed in. <b>Uploads add up</b>: each file is kept, and where two files cover the same dates the most recently uploaded one is used for those dates. A file that's fully covered by a newer upload is removed automatically.</p>
+    <p>Files are saved to the private shared workspace and load automatically for everyone signed in. Crew <b>names are removed</b> before anything is saved — only crew IDs are kept. <b>Uploads add up</b>: each file is kept, and where two files cover the same dates the most recently uploaded one is used for those dates. A file that's fully covered by a newer upload is removed automatically.</p>
     <div id="ds-list"></div>
     <div class="drop" style="margin-top:14px;" onclick="pickFile('any')"><b>Upload files</b><span>Select or drop any of: All tripping · WFLY ($) crewBid · ULV · Discretion report</span></div>
     <h3 style="font-size:14px;margin:20px 0 4px;">WFLY cost per instance</h3>
@@ -1837,15 +1853,20 @@ async function boot() {
   if (settings) {
     try { DATA.settings = {rates:{}, ...JSON.parse(await Cloud.fetchFile('settings', settings))}; } catch (e) { console.error(e); }
   }
+  const toScrub = [];
   for (const kind of Object.keys(KINDS)) {
     const files = Cloud.files(kind);
     for (const [i, f] of files.entries()) {
       try {
         setLoading(`Loading ${KINDS[kind].label}${files.length > 1 ? ` (${i + 1}/${files.length})` : ''} · ${f.name}…`);
-        const rows = KINDS[kind].parse(await Cloud.fetchFile(kind, f));
+        const stored = await Cloud.fetchFile(kind, f), text = scrubNames(kind, stored);
+        const rows = KINDS[kind].parse(text);
         const cov = coverage(kind, rows);
-        PARTS[kind].push({id: f.uploadId, uploadId: f.uploadId, name: f.name, rows, from: f.from || cov.from, to: f.to || cov.to,
-          uploadedAt: f.uploadedAt, order: Date.parse(f.uploadedAt) || i});
+        const part = {id: f.uploadId, uploadId: f.uploadId, name: f.name, rows, from: f.from || cov.from, to: f.to || cov.to,
+          uploadedAt: f.uploadedAt, order: Date.parse(f.uploadedAt) || i};
+        PARTS[kind].push(part);
+        // Files saved before names were stripped: replace them with a name-free copy
+        if (text !== stored) toScrub.push({kind, text, name: f.name, records: rows.length, from: part.from, to: part.to, supersedes: [{uploadId: f.uploadId}], part});
       } catch (e) {
         console.error(e);
         toast(`Couldn't load saved ${KINDS[kind].label} file ${f.name}: ${e.message}`, 'err');
@@ -1860,6 +1881,7 @@ async function boot() {
   setView(DATA.ui.view);
   setSection(DATA.ui.section);
   if (!DATA.meta.tripsLoaded && !DATA.meta.wflyLoaded) showWelcome();
+  for (const job of toScrub) Cloud.save(job);
 }
 boot();
 </script>
