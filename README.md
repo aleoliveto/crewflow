@@ -20,6 +20,8 @@ Load via **Data → Upload files** or drag onto the window — the type is detec
 | ULV | Crew Schedule Statistics, *GROUND DUTIES:ULV* export |
 | Discretion | *Discretion Report (Detailed Format)* export |
 
+**Privacy:** crew names are stripped in the browser before anything is parsed or saved — the ULV and discretion exports keep only crew IDs (tripping and WFLY exports contain IDs only). Files saved before this change are cleaned and replaced automatically the next time anyone opens the dashboard.
+
 The estimated cost per WFLY (CP / FO) is entered once in the WFLY sidebar and saved to the workspace — it is never stored in this repository.
 
 > **Never commit data files.** The repo is public; `.gitignore` blocks `*.csv`, `*.xlsx` and audit exports as a safety net.
